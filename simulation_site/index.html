@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Recorded live simulation console for the Edge-AI Smart Grid Anomaly Detector."
+    />
+    <title>Grid Sentinel — Edge-AI Simulation Console</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" type="module"></script>
+    <script src="topology-loader.js" type="module"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to simulation</a>
+
+    <header class="topbar">
+      <div class="identity" aria-label="Grid Sentinel">
+        <span class="identity-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <div>
+          <p class="product-name">Grid Sentinel</p>
+          <p class="product-context">Edge-AI anomaly simulation</p>
+        </div>
+      </div>
+
+      <div class="run-state" aria-live="polite">
+        <span class="state-light" id="state-light" aria-hidden="true"></span>
+        <span id="run-status">Loading recorded run</span>
+        <span class="run-id" id="run-id">Pending</span>
+      </div>
+
+      <div class="top-actions" aria-label="Replay controls">
+        <button class="control-button" id="play-button" type="button" aria-pressed="true">
+          Pause replay
+        </button>
+        <label class="speed-control">
+          <span>Speed</span>
+          <select id="speed-select">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+          </select>
+        </label>
+        <button class="control-button control-button--quiet" id="step-button" type="button">
+          Step
+        </button>
+        <label class="speed-control everyframe-control">
+          <input type="checkbox" id="everyframe-toggle" />
+          <span>Every frame</span>
+        </label>
+        <button class="control-button control-button--quiet" id="refresh-button" type="button">
+          Refresh data
+        </button>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="overview" aria-labelledby="overview-heading">
+        <div>
+          <p class="section-label">Recorded replay</p>
+          <h1 id="overview-heading">From three-phase signal to defensible alert.</h1>
+        </div>
+        <p class="overview-copy">
+          Every trace, threshold, and decision below comes from the latest deterministic
+          PyTorch run. Replay an actual test record and inspect why the detector acted.
+        </p>
+      </section>
+
+      <section class="signal-workspace" aria-labelledby="signal-heading">
+        <div class="signal-stage">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Waveform evidence</p>
+              <h2 id="signal-heading">Three-phase voltage and reconstruction</h2>
+            </div>
+            <div class="sample-identity">
+              <span id="sample-index">Test pending</span>
+              <strong id="sample-type">Waiting for data</strong>
+            </div>
+          </div>
+
+          <div class="plot-shell">
+            <canvas
+              id="waveform-canvas"
+              width="1200"
+              height="440"
+              role="img"
+              aria-describedby="waveform-summary"
+            ></canvas>
+            <div class="plot-axis plot-axis--y">Voltage (p.u.)</div>
+            <div class="plot-axis plot-axis--x">Time (ms)</div>
+          </div>
+          <p class="sr-only" id="waveform-summary">
+            Waveform replay is loading. A textual summary will appear when data is ready.
+          </p>
+
+          <div class="legend" aria-label="Waveform legend">
+            <span><i class="phase phase--a"></i> Phase A actual</span>
+            <span><i class="phase phase--b"></i> Phase B actual</span>
+            <span><i class="phase phase--c"></i> Phase C actual</span>
+            <span><i class="phase phase--reconstruction"></i> Reconstruction</span>
+          </div>
+
+          <div class="scrubber">
+            <button class="icon-button" id="previous-button" type="button" aria-label="Previous replay record">←</button>
+            <label for="record-slider">Replay record</label>
+            <input id="record-slider" type="range" min="0" max="0" value="0" />
+            <output id="record-position" for="record-slider">0 / 0</output>
+            <button class="icon-button" id="next-button" type="button" aria-label="Next replay record">→</button>
+          </div>
+
+          <dl class="sim-clock" aria-label="Simulation clock">
+            <div><dt>Signal time</dt><dd id="sim-time">0.00 ms</dd></div>
+            <div><dt>60 Hz cycles</dt><dd id="sim-cycles">0.00</dd></div>
+            <div><dt>Clock mode</dt><dd id="sim-mode">Real-time (fixed step)</dd></div>
+            <div><dt>Tick</dt><dd id="sim-tick">0</dd></div>
+            <div><dt>Dropped ticks</dt><dd id="sim-dropped">0</dd></div>
+          </dl>
+        </div>
+
+        <aside class="decision-rail" aria-labelledby="decision-heading">
+          <p class="section-label">Decision gate</p>
+          <div class="decision-status" id="decision-status" data-state="pending">
+            <span class="decision-icon" aria-hidden="true">◆</span>
+            <div>
+              <span>Prediction</span>
+              <strong id="prediction">Pending</strong>
+            </div>
+          </div>
+
+          <h2 id="decision-heading">Why it fired</h2>
+          <div class="threshold-readout">
+            <div class="readout-heading">
+              <span>Reconstruction error</span>
+              <strong id="reconstruction-value">Pending</strong>
+            </div>
+            <progress id="reconstruction-meter" max="1" value="0">0</progress>
+            <p>Limit <span id="reconstruction-threshold">Pending</span></p>
+          </div>
+          <div class="threshold-readout">
+            <div class="readout-heading">
+              <span>Total harmonic distortion</span>
+              <strong id="thd-value">Pending</strong>
+            </div>
+            <progress id="thd-meter" max="1" value="0">0</progress>
+            <p>Limit <span id="thd-threshold">5.00%</span></p>
+          </div>
+
+          <div class="trigger-block">
+            <span>Active evidence</span>
+            <ul id="trigger-list"><li>Waiting for replay data</li></ul>
+          </div>
+          <dl class="record-facts">
+            <div><dt>Ground truth</dt><dd id="ground-truth">Pending</dd></div>
+            <div><dt>Source index</dt><dd id="source-index">Pending</dd></div>
+            <div><dt>Sampling</dt><dd>10 kHz · 60 Hz</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="pipeline" aria-labelledby="pipeline-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Complete framework</p>
+            <h2 id="pipeline-heading">One signal, two independent checks</h2>
+          </div>
+          <p>Either reconstruction error or THD can raise the final alert.</p>
+        </div>
+        <ol class="pipeline-flow">
+          <li><span>01</span><strong>Acquisition + PLL</strong><small>10 kHz · drift normalized</small></li>
+          <li><span>02</span><strong>Conv1D encoder</strong><small>Compact latent vector</small></li>
+          <li><span>03</span><strong>Mirrored decoder</strong><small>Fortescue-constrained training</small></li>
+          <li><span>04A</span><strong>MSE gate</strong><small>Mean + 3.5σ</small></li>
+          <li><span>04B</span><strong>PLL / THD gate</strong><small>Harmonics 2–50</small></li>
+          <li><span>05</span><strong>Indexed alert</strong><small>OR decision, fail closed</small></li>
+        </ol>
+      </section>
+
+      <section class="experiment-grid" aria-label="Experiment results">
+        <article class="training-panel" aria-labelledby="training-heading">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Optimization</p>
+              <h2 id="training-heading">Training convergence</h2>
+            </div>
+            <strong id="final-loss">Pending</strong>
+          </div>
+          <canvas id="training-canvas" width="760" height="300" role="img" aria-label="Training loss by epoch"></canvas>
+          <div class="calibration-line">
+            <span>Calibration mean <strong id="calibration-mean">Pending</strong></span>
+            <span>Population σ <strong id="calibration-std">Pending</strong></span>
+          </div>
+        </article>
+
+        <article class="metrics-panel" aria-labelledby="metrics-heading">
+          <p class="section-label">Synthetic validation</p>
+          <h2 id="metrics-heading">Measured run outcome</h2>
+          <div class="metric-ledger">
+            <div><span>Accuracy</span><strong id="metric-accuracy">Pending</strong></div>
+            <div><span>Precision</span><strong id="metric-precision">Pending</strong></div>
+            <div><span>Recall</span><strong id="metric-recall">Pending</strong></div>
+            <div><span>F1 score</span><strong id="metric-f1">Pending</strong></div>
+          </div>
+          <table class="confusion-table">
+            <caption>Confusion matrix counts</caption>
+            <thead><tr><th scope="col">TP</th><th scope="col">TN</th><th scope="col">FP</th><th scope="col">FN</th></tr></thead>
+            <tbody><tr><td id="metric-tp">Pending</td><td id="metric-tn">Pending</td><td id="metric-fp">Pending</td><td id="metric-fn">Pending</td></tr></tbody>
+          </table>
+          <p class="latency-line"><span id="metric-latency">Pending</span> total validation latency · <span id="metric-throughput">Pending</span> waveforms/s</p>
+        </article>
+      </section>
+
+      <section class="alerts-section" aria-labelledby="alerts-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Alert ledger</p>
+            <h2 id="alerts-heading">Every flagged test index</h2>
+          </div>
+          <p id="alert-count">Pending</p>
+        </div>
+        <div class="table-scroll" tabindex="0">
+          <table class="alerts-table">
+            <thead>
+              <tr>
+                <th scope="col">Index</th><th scope="col">Type</th><th scope="col">Truth</th>
+                <th scope="col">Recon. error</th><th scope="col">THD</th><th scope="col">Trigger</th>
+                <th scope="col">Explanation</th>
+              </tr>
+            </thead>
+            <tbody id="alerts-body"><tr><td colspan="7">Loading alert evidence…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="topology-panel" aria-labelledby="topology-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Grid topology · recorded replay</p>
+            <h2 id="topology-heading">3D feeder map and neural network</h2>
+          </div>
+        </div>
+        <p class="topology-copy">
+          A rendered synthetic substation: three-phase busbars on gantries,
+          transformers, and eight feeder pole lines with sagging conductors.
+          Red beacons mark sections holding recorded alerts, energy pulses
+          follow the simulation clock, and the autoencoder stands inside the
+          ring as the edge-AI tower with its decision beacon. Drag to rotate,
+          scroll to zoom. All data is the recorded run; nothing is live
+          telemetry.
+        </p>
+        <div class="plot-shell">
+          <canvas id="topology-canvas" width="1200" height="520" role="img" tabindex="0"
+            aria-label="Rotatable 3D map of feeder sections, substation, and autoencoder layers. Use arrow keys to orbit and plus or minus to zoom."></canvas>
+        </div>
+        <p class="topology-hud" id="topology-hud" role="status" aria-live="off">
+          Waiting for recorded run data.
+        </p>
+        <p class="sr-only" id="topology-a11y" role="status" aria-live="polite"></p>
+        <p class="sr-only" id="topology-sections-summary"></p>
+      </section>
+
+      <section
+        class="resilience-suite"
+        id="resilience-section"
+        aria-labelledby="resilience-suite-heading"
+        hidden
+      >
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Beyond the single run</p>
+            <h2 id="resilience-suite-heading">Robustness &amp; resilience evidence</h2>
+          </div>
+        </div>
+        <p class="resilience-intro">
+          Every panel below is rendered from the same recorded artifacts as the
+          replay above. Panels appear only when the run exported their data, and
+          honest negatives are shown alongside successes.
+        </p>
+        <div class="resilience-grid">
+          <article class="instrument-panel resilience-card" id="robustness-panel" hidden></article>
+          <article class="instrument-panel resilience-card" id="threshold-panel" hidden></article>
+          <article class="instrument-panel resilience-card" id="roc-panel" hidden>
+            <h3 class="resilience-card-title">Operating characteristic (ROC)</h3>
+            <p class="resilience-card-note" id="roc-note"></p>
+            <canvas
+              id="roc-canvas"
+              width="520"
+              height="420"
+              role="img"
+              aria-describedby="roc-a11y"
+            ></canvas>
+            <p class="sr-only" id="roc-a11y"></p>
+          </article>
+          <article class="instrument-panel resilience-card" id="resilience-panel" hidden></article>
+          <article class="instrument-panel resilience-card" id="dispatch-panel" hidden></article>
+        </div>
+      </section>
+
+      <section class="media-section" aria-labelledby="video-heading">
+        <div class="media-copy">
+          <p class="section-label">Playable artifact</p>
+          <h2 id="video-heading">The full detector, rendered from this run</h2>
+          <p>
+            This MP4 is generated from the same training history, waveform traces,
+            thresholds, and metrics shown above. It contains no invented telemetry.
+          </p>
+          <ul>
+            <li>Three-phase signal generation and anomaly injection</li>
+            <li>Autoencoder reconstruction and FFT/THD decision path</li>
+            <li>Measured calibration, replay, and evaluation outcome</li>
+          </ul>
+          <a class="report-link" href="SIMULATION_RESULTS.md">Open experiment report</a>
+        </div>
+        <video id="explainer-video" controls preload="metadata">
+          <source src="smart_grid_explainer.mp4" type="video/mp4" />
+          Your browser does not support MP4 playback.
+        </video>
+      </section>
+
+      <section class="provenance" aria-labelledby="provenance-heading">
+        <div>
+          <p class="section-label">Run provenance</p>
+          <h2 id="provenance-heading">Reproducible by construction</h2>
+        </div>
+        <dl id="provenance-list">
+          <div><dt>Completed</dt><dd id="completed-at">Pending</dd></div>
+          <div><dt>Seed</dt><dd id="run-seed">Pending</dd></div>
+          <div><dt>Device</dt><dd id="run-device">Pending</dd></div>
+          <div><dt>Model</dt><dd id="run-model">Pending</dd></div>
+          <div><dt>Source hash</dt><dd id="source-hash">Pending</dd></div>
+          <div><dt>Runtime</dt><dd id="runtime-version">Pending</dd></div>
+        </dl>
+        <p class="limitation">
+          Scope note: perfect performance on a seeded synthetic dataset is a pipeline
+          verification result, not a claim of utility-field accuracy.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <span>Grid Sentinel · local recorded simulation</span>
+      <span id="refresh-status" role="status" aria-live="polite">Waiting for data</span>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+# Core detector
+numpy>=2.0,<3
+torch>=2.2,<3
+scipy>=1.13,<2
+
+# Reproducible MP4 artifact generation
+Pillow>=10,<13
+imageio>=2.34,<3
+imageio-ffmpeg>=0.5,<1

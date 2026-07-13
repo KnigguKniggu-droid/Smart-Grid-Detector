@@ -1,0 +1,441 @@
+{
+  "schema_version": 1,
+  "detected_assets": [
+    {
+      "asset_id": "NODE_1929",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.081538,
+        33.41641
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9695,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-01"
+    },
+    {
+      "asset_id": "NODE_0493",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.073333,
+        33.424615
+      ],
+      "status": "compromised",
+      "confidence_score": 0.905,
+      "detected_anomalies": [
+        "transient"
+      ],
+      "section": "SEC-05"
+    },
+    {
+      "asset_id": "NODE_0275",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.028205,
+        33.412308
+      ],
+      "status": "compromised",
+      "confidence_score": 0.8988,
+      "detected_anomalies": [
+        "transient"
+      ],
+      "section": "SEC-03"
+    },
+    {
+      "asset_id": "NODE_0491",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.077436,
+        33.424615
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9295,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-03"
+    },
+    {
+      "asset_id": "NODE_0155",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.028205,
+        33.406154
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9434,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-03"
+    },
+    {
+      "asset_id": "NODE_0818",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.063077,
+        33.441026
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9283,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-02"
+    },
+    {
+      "asset_id": "NODE_1488",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.08359,
+        33.475897
+      ],
+      "status": "compromised",
+      "confidence_score": 0.945,
+      "detected_anomalies": [
+        "sag"
+      ],
+      "section": "SEC-00"
+    },
+    {
+      "asset_id": "NODE_1688",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.08359,
+        33.404103
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9161,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-00"
+    },
+    {
+      "asset_id": "NODE_1089",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.081538,
+        33.455385
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9545,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-01"
+    },
+    {
+      "asset_id": "NODE_1476",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.026154,
+        33.473846
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9289,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-04"
+    },
+    {
+      "asset_id": "NODE_1803",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.093846,
+        33.410256
+      ],
+      "status": "compromised",
+      "confidence_score": 0.99,
+      "detected_anomalies": [
+        "sag"
+      ],
+      "section": "SEC-03"
+    },
+    {
+      "asset_id": "NODE_1605",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.089744,
+        33.4
+      ],
+      "status": "compromised",
+      "confidence_score": 0.949,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-05"
+    },
+    {
+      "asset_id": "NODE_1458",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.063077,
+        33.473846
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9208,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-02"
+    },
+    {
+      "asset_id": "NODE_1733",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.073333,
+        33.406154
+      ],
+      "status": "compromised",
+      "confidence_score": 0.99,
+      "detected_anomalies": [
+        "sag"
+      ],
+      "section": "SEC-05"
+    },
+    {
+      "asset_id": "NODE_0303",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.052821,
+        33.414359
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9182,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-07"
+    },
+    {
+      "asset_id": "NODE_1524",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.091795,
+        33.477949
+      ],
+      "status": "compromised",
+      "confidence_score": 0.99,
+      "detected_anomalies": [
+        "sag"
+      ],
+      "section": "SEC-04"
+    },
+    {
+      "asset_id": "NODE_1072",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.034359,
+        33.453333
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9621,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-00"
+    },
+    {
+      "asset_id": "NODE_1006",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.087692,
+        33.451282
+      ],
+      "status": "compromised",
+      "confidence_score": 0.99,
+      "detected_anomalies": [
+        "sag"
+      ],
+      "section": "SEC-06"
+    },
+    {
+      "asset_id": "NODE_1949",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.040513,
+        33.41641
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9774,
+      "detected_anomalies": [
+        "sag"
+      ],
+      "section": "SEC-05"
+    },
+    {
+      "asset_id": "NODE_0702",
+      "type": "feeder_section_monitor",
+      "coordinates": [
+        -112.054872,
+        33.434872
+      ],
+      "status": "compromised",
+      "confidence_score": 0.9197,
+      "detected_anomalies": [
+        "harmonic"
+      ],
+      "section": "SEC-06"
+    }
+  ],
+  "operational_dispatches": [
+    {
+      "dispatch_id": "DISP_2026_001",
+      "target_node": "NODE_1929",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-01 isolates SEC-01; tie switch TIE-01-02 restores 130 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_002",
+      "target_node": "NODE_0493",
+      "priority": "HIGH",
+      "action_required": "Inspect surge arresters and reclose once the transient source is confirmed cleared.",
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_003",
+      "target_node": "NODE_0275",
+      "priority": "HIGH",
+      "action_required": "Inspect surge arresters and reclose once the transient source is confirmed cleared.",
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_004",
+      "target_node": "NODE_0491",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_005",
+      "target_node": "NODE_0155",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_006",
+      "target_node": "NODE_0818",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-02 isolates SEC-02; tie switch TIE-02-03 restores 140 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_007",
+      "target_node": "NODE_1488",
+      "priority": "MEDIUM",
+      "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
+      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 120 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_008",
+      "target_node": "NODE_1688",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 120 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_009",
+      "target_node": "NODE_1089",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-01 isolates SEC-01; tie switch TIE-01-02 restores 130 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_010",
+      "target_node": "NODE_1476",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-04 isolates SEC-04; tie switch TIE-04-05 restores 160 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_011",
+      "target_node": "NODE_1803",
+      "priority": "CRITICAL",
+      "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_012",
+      "target_node": "NODE_1605",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_013",
+      "target_node": "NODE_1458",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-02 isolates SEC-02; tie switch TIE-02-03 restores 140 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_014",
+      "target_node": "NODE_1733",
+      "priority": "CRITICAL",
+      "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_015",
+      "target_node": "NODE_0303",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-07 isolates SEC-07; tie switch TIE-07-00 restores 190 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_016",
+      "target_node": "NODE_1524",
+      "priority": "CRITICAL",
+      "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
+      "risk_mitigation": "Breaker BRK-04 isolates SEC-04; tie switch TIE-04-05 restores 160 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_017",
+      "target_node": "NODE_1072",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 120 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_018",
+      "target_node": "NODE_1006",
+      "priority": "CRITICAL",
+      "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
+      "risk_mitigation": "Breaker BRK-06 isolates SEC-06; tie switch TIE-06-07 restores 180 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_019",
+      "target_node": "NODE_1949",
+      "priority": "HIGH",
+      "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+    },
+    {
+      "dispatch_id": "DISP_2026_020",
+      "target_node": "NODE_0702",
+      "priority": "CRITICAL",
+      "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
+      "risk_mitigation": "Breaker BRK-06 isolates SEC-06; tie switch TIE-06-07 restores 180 customers outside the fault zone."
+    }
+  ],
+  "geospatial_reference": {
+    "crs": "EPSG:4326",
+    "bbox_lon_lat": [
+      -112.1,
+      33.4,
+      -112.02,
+      33.48
+    ],
+    "synthetic": true
+  },
+  "simulation_disclaimer": "Synthetic self-healing simulation. Sections, customers, coordinates, and response times are simulated for workflow demonstration and carry no real-world meaning.",
+  "run_id": "20260713T162919Z-seed42",
+  "results_sha256": "7e9172701954aa793ea8de88752fbcfce569a29860a17d1344cea0a3df61bee9",
+  "source_sha256": "599a8daaad81e9dfbd0b6e5a4f4d5ed30d7bdedcffb81208d281e92d1f009041"
+}

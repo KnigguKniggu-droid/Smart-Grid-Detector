@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local tooling
+.claude/
+.playwright-mcp/
+.impeccable/
+skill-observations/
+
+# Per-user agent config
+CLAUDE.md
+AGENTS.md
+
+# Vercel deployment metadata
+simulation_site/.env*
+simulation_site/.vercel/
+
+# Documentation images
+topo-after-*.jpeg
