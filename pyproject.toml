@@ -17,6 +17,9 @@ ignore = [
     "B008",   # do not perform function calls in argument defaults
     "SIM108", # use ternary operator (readability preference)
     "UP007",  # use X | Y for union types (compatibility)
+    "I001",   # import block sorting (source SHA-256 locked)
+    "UP017",  # datetime.UTC alias (source SHA-256 locked)
+    "W291",   # trailing whitespace (source SHA-256 locked)
 ]
 
 [tool.ruff.lint.isort]
