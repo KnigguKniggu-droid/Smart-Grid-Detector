@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "total_scenarios": 9,
+  "flagged_count": 8,
+  "passed_count": 1,
+  "all_correct": true,
+  "test_suite_size": 35,
+  "categories": {
+    "Sensor Failure": 4,
+    "Adversarial": 4,
+    "Validation": 1
+  },
+  "scenarios": [
+    {
+      "id": "stuck-at-fault",
+      "name": "Stuck-at Sensor Fault",
+      "category": "Sensor Failure",
+      "description": "Sensor frozen at a constant DC offset with no fundamental frequency component.",
+      "detection_mechanism": "THD fail-closed (infinite THD, zero fundamental power)",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "thd_ratio": null,
+        "reconstruction_error": 0.9942541122436523,
+        "trigger": "thd"
+      }
+    },
+    {
+      "id": "phase-swap",
+      "name": "Phase Connection Swap",
+      "category": "Sensor Failure",
+      "description": "Phase A and C swapped, breaking the 120-degree three-phase balance.",
+      "detection_mechanism": "FDI physics layer (noise-floor or balance check)",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "too_clean": true,
+        "unbalanced_sum": false,
+        "fused_score": 0.645810067653656,
+        "trigger": "noise_floor"
+      }
+    },
+    {
+      "id": "burst-corruption",
+      "name": "Intermittent Burst Corruption",
+      "category": "Sensor Failure",
+      "description": "52-sample burst of extreme values (10.0) within an otherwise clean waveform.",
+      "detection_mechanism": "Reconstruction error exceeds threshold",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "reconstruction_error": 18.451400756835938,
+        "thd_ratio": 1.1260040998458862,
+        "trigger": "reconstruction"
+      }
+    },
+    {
+      "id": "additive-noise",
+      "name": "Additive Gaussian Noise",
+      "category": "Adversarial",
+      "description": "Large Gaussian noise (sigma=0.5) added to unit-amplitude waveform.",
+      "detection_mechanism": "Reconstruction error exceeds threshold",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "reconstruction_error": 1.6766635179519653,
+        "thd_ratio": 0.41078463196754456,
+        "trigger": "reconstruction"
+      }
+    },
+    {
+      "id": "sensor-saturation",
+      "name": "Sensor Saturation (Clipping)",
+      "category": "Sensor Failure",
+      "description": "Waveform hard-clipped at +/-0.3, simulating ADC saturation.",
+      "detection_mechanism": "THD exceeds 5% limit (odd harmonics from clipping)",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "thd_ratio": 0.3307422399520874,
+        "trigger": "thd"
+      }
+    },
+    {
+      "id": "multi-phase-bias",
+      "name": "Multi-Phase Coordinated Bias",
+      "category": "Adversarial",
+      "description": "Small simultaneous biases on all three phases (A+2.5%, B-2%, C+1.5%) with realistic sensor noise.",
+      "detection_mechanism": "FDI physics layer (fused joint score or individual check)",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "fused_score": 2.4940569400787354,
+        "fused_limit": 2.601504325866699,
+        "too_clean": false,
+        "joint": false,
+        "individual": true,
+        "trigger": "individual"
+      }
+    },
+    {
+      "id": "gain-drift",
+      "name": "Sensor Gain Drift Accumulation",
+      "category": "Adversarial",
+      "description": "Small per-record gain shift (1.2%) below individual alarm threshold, accumulated via rolling z-test.",
+      "detection_mechanism": "DriftMonitor rolling z-score alarm",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "gain_factor": 1.012,
+        "individual_alarms": 0,
+        "drift_alarm_at_observation": 16,
+        "window": 16,
+        "z_limit": 4.0,
+        "trigger": "drift_monitor"
+      }
+    },
+    {
+      "id": "replay-masking",
+      "name": "Replay Masking Attack",
+      "category": "Adversarial",
+      "description": "Anomalous records replaced with ideal noiseless replicas to hide faults from the learned detector.",
+      "detection_mechanism": "FDI noise-floor check (too_clean)",
+      "expected_detection": "flagged",
+      "observed_detection": "flagged",
+      "details": {
+        "records": 380,
+        "all_too_clean": true,
+        "all_flagged": true,
+        "trigger": "noise_floor"
+      }
+    },
+    {
+      "id": "genuine-records",
+      "name": "Genuine Records (False Positive Guard)",
+      "category": "Validation",
+      "description": "All genuine normal telemetry must produce zero FDI flags.",
+      "detection_mechanism": "FDI physics layer (all checks must pass)",
+      "expected_detection": "passed",
+      "observed_detection": "passed",
+      "details": {
+        "records": 380,
+        "total_flags": 0,
+        "individual_flags": 0,
+        "joint_flags": 0,
+        "trigger": "none"
+      }
+    }
+  ]
+}

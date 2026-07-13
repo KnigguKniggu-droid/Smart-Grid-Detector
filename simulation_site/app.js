@@ -724,6 +724,82 @@ function renderResilience(data) {
   ].some((id) => !byId(id).hidden);
   section.hidden = !anyVisible;
   loadDispatches(data.run.id, state.resultsSha256);
+  loadAdversarialResilience();
+}
+
+// --- Adversarial resilience panel ---
+
+async function loadAdversarialResilience() {
+  const intro = byId("adversarial-intro");
+  const summary = byId("adversarial-summary");
+  const grid = byId("adversarial-grid");
+  try {
+    const response = await fetch("adversarial_resilience.json", {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    renderAdversarialResilience(data);
+  } catch (error) {
+    intro.textContent = "Adversarial resilience data unavailable.";
+    console.error("Adversarial resilience fetch failed:", error);
+  }
+}
+
+function renderAdversarialResilience(data) {
+  const intro = byId("adversarial-intro");
+  const summary = byId("adversarial-summary");
+  const grid = byId("adversarial-grid");
+
+  intro.textContent =
+    `${data.total_scenarios} attack and sensor-failure scenarios tested across ` +
+    `${data.test_suite_size} unit tests. Each card shows the detection mechanism ` +
+    `that catches (or allows) the scenario.`;
+
+  // Summary stats
+  summary.hidden = false;
+  summary.replaceChildren();
+  const stats = [
+    { label: "Scenarios tested", value: data.total_scenarios, cls: "is-cyan" },
+    { label: "Correctly handled", value: data.flagged_count + data.passed_count, cls: "is-green" },
+    { label: "Flagged (attacked)", value: data.flagged_count, cls: "is-amber" },
+    { label: "All correct", value: data.all_correct ? "Yes" : "No", cls: "is-green" },
+  ];
+  for (const stat of stats) {
+    const card = el("div", null, "adversarial-stat");
+    card.appendChild(el("span", stat.label));
+    const strong = el("strong", String(stat.value), stat.cls);
+    card.appendChild(strong);
+    summary.appendChild(card);
+  }
+
+  // Scenario cards
+  grid.replaceChildren();
+  for (const scenario of data.scenarios) {
+    const card = el("div", null, "adversarial-card");
+
+    // Header: title + badge
+    const header = el("div", null, "adversarial-card-header");
+    header.appendChild(el("h3", scenario.name));
+    const isFlagged = scenario.observed_detection === "flagged";
+    const badgeClass = isFlagged ? "adversarial-badge is-flagged" : "adversarial-badge is-passed";
+    header.appendChild(el("span", isFlagged ? "Detected" : "Passed", badgeClass));
+    card.appendChild(header);
+
+    // Category tag
+    card.appendChild(el("span", scenario.category, "adversarial-card-category"));
+
+    // Description
+    card.appendChild(el("p", scenario.description));
+
+    // Detection mechanism
+    const mech = el("div", null, "mechanism");
+    mech.textContent = scenario.detection_mechanism;
+    card.appendChild(mech);
+
+    grid.appendChild(card);
+  }
 }
 
 function renderCurrentRecord() {

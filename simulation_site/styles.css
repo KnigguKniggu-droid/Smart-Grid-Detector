@@ -932,6 +932,144 @@ video {
   font-size: 0.82rem;
 }
 
+/* --- Adversarial Resilience Section --- */
+.adversarial-section {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.adversarial-intro {
+  max-width: 72ch;
+  margin: 0.35rem 0 1.3rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.adversarial-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.adversarial-stat {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: oklch(0.14 0.018 250 / 0.5);
+  text-align: center;
+}
+.adversarial-stat span {
+  display: block;
+  color: var(--muted-dim);
+  font-family: "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.adversarial-stat strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.adversarial-stat strong.is-green { color: var(--green); }
+.adversarial-stat strong.is-cyan { color: var(--cyan); }
+.adversarial-stat strong.is-amber { color: var(--amber); }
+
+.adversarial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.adversarial-card {
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: oklch(0.14 0.018 250 / 0.4);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.adversarial-card:hover {
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.adversarial-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.adversarial-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.adversarial-badge {
+  flex-shrink: 0;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-family: "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.adversarial-badge.is-flagged {
+  background: oklch(0.2 0.06 25 / 0.35);
+  border: 1px solid oklch(0.5 0.12 25 / 0.4);
+  color: var(--red);
+}
+.adversarial-badge.is-passed {
+  background: oklch(0.2 0.05 155 / 0.3);
+  border: 1px solid oklch(0.5 0.1 155 / 0.35);
+  color: var(--green);
+}
+
+.adversarial-card-category {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: oklch(0.18 0.03 220 / 0.5);
+  border: 1px solid var(--line-soft);
+  color: var(--muted-dim);
+  font-family: "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.adversarial-card p {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.adversarial-card .mechanism {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: var(--cyan);
+  font-family: "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.adversarial-card .mechanism::before {
+  content: "\2192";
+  color: var(--muted-dim);
+}
+
 /* --- Footer --- */
 footer {
   display: flex;
@@ -1001,6 +1139,7 @@ footer {
 .pipeline,
 .experiment-grid,
 .resilience-suite,
+.adversarial-section,
 .topology-panel,
 .media-section,
 .provenance,
@@ -1013,5 +1152,6 @@ footer {
 .alerts-section { animation-delay: 0.15s; }
 .topology-panel { animation-delay: 0.2s; }
 .resilience-suite { animation-delay: 0.25s; }
+.adversarial-section { animation-delay: 0.28s; }
 .media-section { animation-delay: 0.3s; }
 .provenance { animation-delay: 0.35s; }

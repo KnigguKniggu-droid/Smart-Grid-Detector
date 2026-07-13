@@ -93,6 +93,7 @@ DASHBOARD_PUBLIC_PATHS: Final[frozenset[str]] = frozenset(
         "topology3d.js",
         "simulation_results.json",
         "grid_dispatches.json",
+        "adversarial_resilience.json",
         "SIMULATION_RESULTS.md",
         "smart_grid_explainer.mp4",
         "vendor/three.module.min.js",
