@@ -625,5 +625,223 @@ class RobustnessAndEdgeTests(unittest.TestCase):
         self.assertEqual(len(scenario["gain_scenarios"]), 3)
 
 
+class AdversarialAndSensorFailureTests(unittest.TestCase):
+    """Sensor faults and adversarial perturbations beyond the FDI scenario.
+
+    These complement the existing FDI scenario (replay, phase bias,
+    coordinated) and boundary probes (flatline, non-finite) by exercising
+    failure modes that attack the sensor layer or the physical signal itself
+    rather than the learned or physics rules individually.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        detector.set_deterministic_seed(42)
+        cls.device = torch.device("cpu")
+        cls.bundle = detector._generate_waveform_bundle(2000, 512, seed=42)
+        cls.model = detector.GridWaveformAutoencoder(sequence_length=512)
+        cls.normal_train = cls.bundle.train_waveforms[
+            cls.bundle.train_labels == 0
+        ].contiguous()
+        cls.calibration = {}
+        cls.threshold = detector.train_autoencoder(
+            cls.model,
+            cls.normal_train,
+            cls.device,
+            epochs=1,
+            calibration=cls.calibration,
+        )
+        cls.fdi_calibration = detector.calibrate_fdi_detector(cls.normal_train)
+
+    def test_stuck_at_sensor_fault_detected_by_thd(self) -> None:
+        """A sensor frozen at a constant non-zero DC offset has no fundamental.
+
+        The THD estimator divides harmonic power by fundamental power; a pure
+        DC signal has zero fundamental power, so THD returns infinity and the
+        detector flags it via the fail-closed path.
+        """
+        base = detector._three_phase_base(512)
+        stuck = torch.full_like(base, 0.5)
+        decision = detector._single_record_decision(
+            self.model, stuck, self.threshold, self.device
+        )
+        self.assertTrue(decision["flags"]["thd"])
+        self.assertEqual(decision["prediction"], "anomaly")
+
+    def test_phase_swap_breaks_three_phase_balance(self) -> None:
+        """Swapping phase A and C breaks the 120-degree balance.
+
+        A genuine three-phase signal has near-zero phase-sum RMS. Swapping
+        two phases introduces a large phase-sum component that the FDI
+        physics layer catches. The ideal noiseless base also trips the
+        too-clean check, so the combined flags must all fire.
+        """
+        base = detector._three_phase_base(512).repeat(4, 1, 1)
+        swapped = base[:, [2, 1, 0], :]
+        fdi = detector.detect_false_data_injection(swapped, self.fdi_calibration)
+        self.assertTrue(bool(fdi["flags"].all()))
+        self.assertTrue(
+            bool(fdi["unbalanced_sum"].any()) or bool(fdi["too_clean"].any()),
+            "Phase swap must be caught by balance or noise-floor check",
+        )
+
+    def test_intermittent_burst_corruption_trips_reconstruction(self) -> None:
+        """A short burst of corruption within a clean waveform raises error.
+
+        Corrupting 10% of samples with extreme values increases the
+        reconstruction error above the threshold while leaving the waveform
+        nominally finite (so the invalid-input path does not fire).
+        """
+        base = detector._three_phase_base(512)
+        corrupted = base.clone()
+        burst_start = 400
+        burst_end = 452
+        corrupted[0, :, burst_start:burst_end] = 10.0
+        decision = detector._single_record_decision(
+            self.model, corrupted, self.threshold, self.device
+        )
+        self.assertTrue(decision["flags"]["reconstruction"])
+        self.assertFalse(decision["flags"]["invalid_input"])
+
+    def test_additive_gaussian_noise_trips_above_threshold(self) -> None:
+        """Large additive noise pushes reconstruction error past the threshold.
+
+        A noise standard deviation of 0.5 on a unit-amplitude waveform is
+        well above what the autoencoder can reconstruct, so the
+        reconstruction rule must fire.
+        """
+        base = detector._three_phase_base(512)
+        generator = torch.Generator().manual_seed(99)
+        noise = torch.randn(base.shape, generator=generator) * 0.5
+        noisy = base + noise
+        decision = detector._single_record_decision(
+            self.model, noisy, self.threshold, self.device
+        )
+        self.assertTrue(decision["flags"]["reconstruction"])
+
+    def test_sensor_saturation_clipping_detected_by_thd(self) -> None:
+        """Clipping a sine wave at +/- 0.3 creates strong odd harmonics.
+
+        Hard clipping is a common ADC saturation failure. The squared
+        harmonics push THD well above the 5% limit.
+        """
+        base = detector._three_phase_base(512)
+        clipped = base.clamp(-0.3, 0.3)
+        thd = detector.compute_thd(clipped)
+        self.assertTrue((thd > detector.THD_LIMIT).all())
+
+    def test_multi_phase_coordinated_bias_caught_by_fused_score(self) -> None:
+        """Small simultaneous biases on all three phases evade individual rules.
+
+        Scaling phases A, B, C by 1.025, 0.98, and 1.015 respectively keeps
+        each per-phase RMS close to the others (low asymmetry) and keeps the
+        phase-sum RMS small. With realistic sensor noise added so the
+        too-clean check passes, no single physics check trips but the fused
+        joint score exceeds the calibration bound.
+        """
+        base = detector._three_phase_base(512).repeat(8, 1, 1)
+        generator = torch.Generator().manual_seed(77)
+        noise = torch.randn(base.shape, generator=generator) * 0.02
+        noisy_base = base + noise
+        biased = noisy_base.clone()
+        biased[:, 0, :] *= 1.025
+        biased[:, 1, :] *= 0.98
+        biased[:, 2, :] *= 1.015
+        fdi = detector.detect_false_data_injection(biased, self.fdi_calibration)
+        self.assertFalse(
+            bool(fdi["too_clean"].all()),
+            "Noisy waveforms must pass the noise-floor check",
+        )
+        self.assertTrue(
+            bool(fdi["flags"].all()),
+            "Multi-phase coordinated bias must be caught by some rule",
+        )
+        self.assertTrue(
+            bool(fdi["joint"].all()) or bool(fdi["individual"].any()),
+            "Fused joint score or individual check must catch the bias",
+        )
+
+    def test_gain_drift_accumulation_triggers_drift_monitor(self) -> None:
+        """Small per-record gain shifts that stay below the alarm threshold.
+
+        Each individual record has reconstruction error below the detection
+        threshold, but the rolling z-test accumulates enough evidence to
+        raise a drift alarm within the window.
+        """
+        normals = self.bundle.test_waveforms[self.bundle.test_labels == 0]
+        model = self.model
+        model.eval()
+        collected = []
+        with torch.inference_mode():
+            for start_index in range(0, normals.shape[0], 128):
+                batch = normals[start_index : start_index + 128].to(self.device)
+                collected.append(
+                    detector._per_waveform_mse(model(batch), batch).cpu()
+                )
+        clean_errors = torch.cat(collected)
+        threshold_val = self.calibration["mean_error"]
+        std_val = max(self.calibration["std_error"], 1e-12)
+        monitor = detector.DriftMonitor(threshold_val, std_val, window=16, z_limit=4.0)
+        individual_alarms = 0
+        drift_alarm = None
+        for value in clean_errors.tolist():
+            state = monitor.observe(value)
+            if value > self.threshold:
+                individual_alarms += 1
+            if state["drift"] and drift_alarm is None:
+                drift_alarm = state["observation"]
+        self.assertEqual(individual_alarms, 0, "No individual record should alarm")
+        self.assertIsNone(drift_alarm, "Clean baseline must not trigger drift")
+
+        gain = 1.012
+        gain_errors = []
+        with torch.inference_mode():
+            scaled = (normals * gain).to(self.device)
+            for start_index in range(0, scaled.shape[0], 128):
+                batch = scaled[start_index : start_index + 128]
+                gain_errors.append(
+                    detector._per_waveform_mse(model(batch), batch).cpu()
+                )
+        gain_error_tensor = torch.cat(gain_errors)
+        drift_monitor = detector.DriftMonitor(
+            threshold_val, std_val, window=16, z_limit=4.0
+        )
+        drift_alarm = None
+        for value in gain_error_tensor.tolist():
+            state = drift_monitor.observe(value)
+            if state["drift"] and drift_alarm is None:
+                drift_alarm = state["observation"]
+        self.assertIsNotNone(
+            drift_alarm,
+            "Gain drift must trigger drift alarm within the window",
+        )
+
+    def test_fdi_catches_replay_masking_on_all_normal_records(self) -> None:
+        """Replay attack replaces anomalous records with ideal noiseless copies.
+
+        The noise-floor check must catch every such record because genuine
+        telemetry always carries a sensor noise floor that ideal waveforms
+        lack.
+        """
+        normals = self.bundle.test_waveforms[self.bundle.test_labels == 0]
+        replay = detector._three_phase_base(512).repeat(normals.shape[0], 1, 1)
+        fdi = detector.detect_false_data_injection(replay, self.fdi_calibration)
+        self.assertTrue(bool(fdi["too_clean"].all()))
+        self.assertTrue(bool(fdi["flags"].all()))
+
+    def test_fdi_genuine_records_unflagged(self) -> None:
+        """Genuine normal telemetry must produce zero FDI flags.
+
+        This guards against false positives in the physics layer: the
+        calibration bounds must admit every record from the real synthesis
+        pipeline.
+        """
+        normals = self.bundle.test_waveforms[self.bundle.test_labels == 0]
+        fdi = detector.detect_false_data_injection(normals, self.fdi_calibration)
+        self.assertEqual(int(fdi["flags"].sum()), 0)
+        self.assertEqual(int(fdi["individual"].sum()), 0)
+        self.assertEqual(int(fdi["joint"].sum()), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
