@@ -33,6 +33,15 @@
         <span class="run-id" id="run-id">Pending</span>
       </div>
 
+      <div class="run-selector" aria-label="Run selection">
+        <label for="run-select">Run</label>
+        <select id="run-select" aria-describedby="run-select-status">
+          <option value="simulation_results.json" selected>Seed 42 (canonical)</option>
+          <option value="simulation_results_alt.json">Seed 137 (comparison)</option>
+        </select>
+        <span class="sr-only" id="run-select-status" role="status" aria-live="polite"></span>
+      </div>
+
       <div class="top-actions" aria-label="Replay controls">
         <button class="control-button" id="play-button" type="button" aria-pressed="true">
           Pause replay
@@ -212,6 +221,38 @@
           </table>
           <p class="latency-line"><span id="metric-latency">Pending</span> total validation latency · <span id="metric-throughput">Pending</span> waveforms/s</p>
         </article>
+      </section>
+
+      <section class="comparison-section" id="comparison-section" aria-labelledby="comparison-heading" aria-live="polite" hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Multi-run comparison</p>
+            <h2 id="comparison-heading">Seed 42 vs Seed 137</h2>
+          </div>
+        </div>
+        <div class="comparison-grid">
+          <div class="comparison-card">
+            <h3>Training</h3>
+            <div class="comparison-metrics" id="compare-training"></div>
+          </div>
+          <div class="comparison-card">
+            <h3>Validation</h3>
+            <div class="comparison-metrics" id="compare-validation"></div>
+          </div>
+          <div class="comparison-card">
+            <h3>Calibration</h3>
+            <div class="comparison-metrics" id="compare-calibration"></div>
+          </div>
+          <div class="comparison-card">
+            <h3>Alerts</h3>
+            <div class="comparison-metrics" id="compare-alerts"></div>
+          </div>
+        </div>
+        <p class="resilience-card-note" id="comparison-note">
+          Both runs use the same synthetic dataset (400 test records, 5% anomaly rate).
+          Differences reflect random initialization and training dynamics.
+        </p>
+        <p class="sr-only" id="comparison-a11y" role="status" aria-live="polite"></p>
       </section>
 
       <section class="alerts-section" aria-labelledby="alerts-heading">

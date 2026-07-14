@@ -16,6 +16,11 @@ const POLL_MAX_MS = 60_000;
 const POLL_BACKOFF = 1.5;
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+const RUN_MANIFEST = [
+  { url: "simulation_results.json", label: "Seed 42 (canonical)" },
+  { url: "simulation_results_alt.json", label: "Seed 137 (comparison)" },
+];
+
 const state = {
   data: null,
   records: [],
@@ -34,6 +39,8 @@ const state = {
   dispatchResultsSha256: null,
   dispatchRequestId: 0,
   resultsSha256: null,
+  activeRunUrl: "simulation_results.json",
+  comparisonData: null,
 };
 
 const DISPATCHES_URL = "grid_dispatches.json";
@@ -124,9 +131,10 @@ function pollStatusSuffix() {
   return `next check in ~${Math.round(state.pollDelay / 1000)}s`;
 }
 
-async function loadResults({ announce = true } = {}) {
+async function loadResults({ announce = true, url } = {}) {
   if (state.loading) return;
-  if (document.hidden) {
+  const targetUrl = url || state.activeRunUrl || RESULTS_URL;
+  if (document.hidden && targetUrl === state.activeRunUrl) {
     schedulePoll();
     return;
   }
@@ -135,7 +143,7 @@ async function loadResults({ announce = true } = {}) {
   state.controller = new AbortController();
   const refreshButton = byId("refresh-button");
   refreshButton.disabled = true;
-  if (announce) setText("refresh-status", "Loading recorded run…");
+  if (announce) setText("refresh-status", "Loading recorded run\u2026");
 
   let timedOut = false;
   const timeoutHandle = setTimeout(() => {
@@ -144,23 +152,25 @@ async function loadResults({ announce = true } = {}) {
   }, FETCH_TIMEOUT_MS);
   try {
     const headers = {};
-    if (state.validators.etag) headers["If-None-Match"] = state.validators.etag;
-    if (state.validators.lastModified) {
+    if (targetUrl === state.activeRunUrl && state.validators.etag) {
+      headers["If-None-Match"] = state.validators.etag;
+    }
+    if (targetUrl === state.activeRunUrl && state.validators.lastModified) {
       headers["If-Modified-Since"] = state.validators.lastModified;
     }
-    const response = await fetch(RESULTS_URL, {
+    const response = await fetch(targetUrl, {
       cache: "no-store",
       credentials: "same-origin",
       headers,
       signal: state.controller.signal,
     });
-    if (response.status === 304 && state.data) {
+    if (response.status === 304 && state.data && targetUrl === state.activeRunUrl) {
       state.pollDelay = nextPollDelay(
         state.pollDelay, false, POLL_BASE_MS, POLL_MAX_MS, POLL_BACKOFF,
       );
       setText(
         "refresh-status",
-        `Unchanged · checked ${new Date().toLocaleTimeString()} · ${pollStatusSuffix()}`,
+        `Unchanged \u00b7 checked ${new Date().toLocaleTimeString()} \u00b7 ${pollStatusSuffix()}`,
       );
       return;
     }
@@ -173,8 +183,12 @@ async function loadResults({ announce = true } = {}) {
     const data = JSON.parse(text);
     assertResultsShape(data);
     const resultsSha256 = await sha256Hex(text);
-    state.validators.etag = response.headers.get("etag");
-    state.validators.lastModified = response.headers.get("last-modified");
+
+    if (targetUrl === state.activeRunUrl) {
+      state.validators.etag = response.headers.get("etag");
+      state.validators.lastModified = response.headers.get("last-modified");
+    }
+
     const changedRun = data.run.id !== state.data?.run?.id;
     state.pollDelay = nextPollDelay(
       state.pollDelay, changedRun, POLL_BASE_MS, POLL_MAX_MS, POLL_BACKOFF,
@@ -182,19 +196,24 @@ async function loadResults({ announce = true } = {}) {
     state.data = data;
     state.resultsSha256 = resultsSha256;
     state.records = data.replay.records;
-    if (changedRun) {
+    if (changedRun || targetUrl !== state.activeRunUrl) {
       state.current = 0;
       state.scan = 0;
       simClock.tick = 0;
       simClock.droppedTicks = 0;
     }
+    state.activeRunUrl = targetUrl;
     renderAll();
     byId("state-light").className = "state-light is-ready";
     setText("run-status", "Recorded run ready");
     setText(
       "refresh-status",
-      `Data current · ${new Date().toLocaleTimeString()} · ${pollStatusSuffix()}`,
+      `Data current \u00b7 ${new Date().toLocaleTimeString()} \u00b7 ${pollStatusSuffix()}`,
     );
+
+    if (targetUrl === RESULTS_URL) {
+      loadComparison();
+    }
   } catch (error) {
     if (error.name !== "AbortError" || timedOut) {
       byId("state-light").className = "state-light is-error";
@@ -212,7 +231,7 @@ async function loadResults({ announce = true } = {}) {
     clearTimeout(timeoutHandle);
     state.loading = false;
     refreshButton.disabled = false;
-    schedulePoll();
+    if (targetUrl === state.activeRunUrl) schedulePoll();
   }
 }
 
@@ -1117,6 +1136,28 @@ byId("next-button").addEventListener("click", () => selectRecord(state.current +
 byId("record-slider").addEventListener("input", (event) => {
   selectRecord(Number(event.target.value));
 });
+
+// Keyboard navigation for records: left/right when waveform area is focused
+document.addEventListener("keydown", (event) => {
+  const target = event.target;
+  if (target.tagName === "SELECT" || target.tagName === "INPUT" || target.tagName === "BUTTON") return;
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    selectRecord(state.current - 1);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    selectRecord(state.current + 1);
+  } else if (event.key === " ") {
+    event.preventDefault();
+    state.playing = !state.playing;
+    updatePlayButton();
+    if (state.playing) {
+      state.lastFrame = performance.now();
+      requestAnimationLoop();
+    }
+  }
+});
+
 reducedMotion.addEventListener("change", (event) => {
   if (event.matches) {
     state.playing = false;
@@ -1268,6 +1309,128 @@ const downloadButton = byId("download-report");
 if (downloadButton) {
   downloadButton.addEventListener("click", generateReport);
 }
+
+// --- Multi-run comparison ---
+
+async function loadComparison() {
+  const altUrl = RUN_MANIFEST.find((r) => r.url !== RESULTS_URL)?.url;
+  if (!altUrl) return;
+  try {
+    const response = await fetch(altUrl, { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await readBodyWithCap(response, MAX_RESULTS_BYTES);
+    state.comparisonData = JSON.parse(text);
+    renderComparison();
+  } catch (error) {
+    console.error("Comparison run fetch failed:", error);
+    state.comparisonData = null;
+  }
+}
+
+function renderComparison() {
+  const section = byId("comparison-section");
+  const alt = state.comparisonData;
+  const primary = state.data;
+  if (!alt || !primary) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+
+  byId("comparison-heading").textContent =
+    `Seed ${primary.config.seed} vs Seed ${alt.config.seed}`;
+
+  const trainingEl = byId("compare-training");
+  trainingEl.replaceChildren();
+  const pEpochs = primary.training.epochs;
+  const aEpochs = alt.training.epochs;
+  const pFinalLoss = pEpochs.length ? pEpochs.at(-1).mse : NaN;
+  const aFinalLoss = aEpochs.length ? aEpochs.at(-1).mse : NaN;
+  addComparisonRow(trainingEl, "Epochs", String(pEpochs.length), String(aEpochs.length));
+  addComparisonRow(
+    trainingEl, "Final loss",
+    Number.isFinite(pFinalLoss) ? pFinalLoss.toFixed(8) : "n/a",
+    Number.isFinite(aFinalLoss) ? aFinalLoss.toFixed(8) : "n/a",
+  );
+
+  const valEl = byId("compare-validation");
+  valEl.replaceChildren();
+  const pm = primary.evaluation.metrics;
+  const am = alt.evaluation.metrics;
+  for (const [key, label] of [
+    ["accuracy", "Accuracy"],
+    ["precision", "Precision"],
+    ["recall", "Recall"],
+    ["f1_score", "F1"],
+  ]) {
+    addComparisonRow(valEl, label, pct(pm[key]), pct(am[key]));
+  }
+  addComparisonRow(valEl, "Latency",
+    `${pm.inference_latency_ms.toFixed(1)} ms`,
+    `${am.inference_latency_ms.toFixed(1)} ms`);
+
+  const calEl = byId("compare-calibration");
+  calEl.replaceChildren();
+  const pc = primary.training.calibration;
+  const ac = alt.training.calibration;
+  addComparisonRow(calEl, "Threshold",
+    pc.threshold.toFixed(8), ac.threshold.toFixed(8));
+  addComparisonRow(calEl, "Mean error",
+    pc.mean_error.toFixed(8), ac.mean_error.toFixed(8));
+  addComparisonRow(calEl, "Std error",
+    pc.std_error.toFixed(8), ac.std_error.toFixed(8));
+
+  const alertEl = byId("compare-alerts");
+  alertEl.replaceChildren();
+  const pAlerts = primary.evaluation.observations.filter(
+    (o) => o.prediction === "anomaly").length;
+  const aAlerts = alt.evaluation.observations.filter(
+    (o) => o.prediction === "anomaly").length;
+  addComparisonRow(alertEl, "Alerts", `${pAlerts} / ${primary.dataset.test_total}`,
+    `${aAlerts} / ${alt.dataset.test_total}`);
+  addComparisonRow(alertEl, "TP", String(pm.true_positives), String(am.true_positives));
+  addComparisonRow(alertEl, "FP", String(pm.false_positives), String(am.false_positives));
+  addComparisonRow(alertEl, "FN", String(pm.false_negatives), String(am.false_negatives));
+  addComparisonRow(alertEl, "TN", String(pm.true_negatives), String(am.true_negatives));
+
+  byId("comparison-note").textContent =
+    `Both runs use the same synthetic dataset (${primary.dataset.test_total} test records, ` +
+    `5% anomaly rate). Seed ${primary.config.seed} threshold: ${pc.threshold.toFixed(8)}; ` +
+    `Seed ${alt.config.seed} threshold: ${ac.threshold.toFixed(8)}.`;
+
+  const a11y = byId("comparison-a11y");
+  if (a11y) {
+    a11y.textContent =
+      `Comparison loaded. Seed ${primary.config.seed}: accuracy ${pct(pm.accuracy)}, ` +
+      `F1 ${pct(pm.f1_score)}, threshold ${pc.threshold.toFixed(8)}, ` +
+      `${pAlerts} alerts. Seed ${alt.config.seed}: accuracy ${pct(am.accuracy)}, ` +
+      `F1 ${pct(am.f1_score)}, threshold ${ac.threshold.toFixed(8)}, ` +
+      `${aAlerts} alerts.`;
+  }
+}
+
+function addComparisonRow(container, label, primaryVal, altVal) {
+  const row = el("div", null, "comparison-row");
+  row.appendChild(el("span", label, "comparison-label"));
+  row.appendChild(el("span", primaryVal, "comparison-value"));
+  row.appendChild(el("span", altVal, "comparison-value"));
+  container.appendChild(row);
+}
+
+// --- Run selector ---
+
+byId("run-select").addEventListener("change", (event) => {
+  const url = event.target.value;
+  const label = event.target.options[event.target.selectedIndex].text;
+  state.activeRunUrl = url;
+  state.comparisonData = null;
+  byId("comparison-section").hidden = true;
+  const status = byId("run-select-status");
+  if (status) status.textContent = `Loading ${label}...`;
+  loadResults({ announce: true, url }).then(() => {
+    if (status) status.textContent = `Loaded ${label}`;
+  });
+});
 
 updatePlayButton();
 renderSimClock();

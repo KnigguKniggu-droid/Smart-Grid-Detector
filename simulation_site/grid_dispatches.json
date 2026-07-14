@@ -435,7 +435,7 @@
     "synthetic": true
   },
   "simulation_disclaimer": "Synthetic self-healing simulation. Sections, customers, coordinates, and response times are simulated for workflow demonstration and carry no real-world meaning.",
-  "run_id": "20260713T192709Z-seed42",
-  "results_sha256": "7169fe6a0405793442b3087023440eecac3fb14df3d3792f4b873a36b0d1ad0b",
-  "source_sha256": "2c7c2bb9ea76b5ebab80c809e1d6254c12475106bba7843ed3ab1fed6d191917"
+  "run_id": "20260714T204745Z-seed42",
+  "results_sha256": "9b5b7ceae337a7115d55d38b36103fd152306eb85d1ab1f44dc2e88d5ce794ff",
+  "source_sha256": "41ec5cbf17f45ad497102a14f5fae50a296eec7385930074d55fb89efef2606c"
 }
