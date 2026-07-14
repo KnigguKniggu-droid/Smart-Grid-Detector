@@ -1286,6 +1286,193 @@ footer {
 }
 
 /* ============================================================
+   DSP Engine & Phase Portrait
+   ============================================================ */
+
+.dsp-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow);
+}
+
+.dsp-fps {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+}
+
+.dsp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.dsp-canvas-container {
+  position: relative;
+}
+
+#phase-portrait-canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+}
+
+.dsp-readout {
+  display: flex;
+  justify-content: space-around;
+  margin-top: var(--space-2);
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: var(--muted);
+}
+
+.dsp-readout strong {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+.dsp-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+}
+
+.dsp-metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dsp-metric span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.dsp-metric strong {
+  font-size: 1rem;
+  color: var(--cyan);
+}
+
+.dsp-metric progress {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dsp-metric progress::-webkit-progress-bar {
+  background: var(--bg);
+  border-radius: 3px;
+}
+
+.dsp-metric progress::-webkit-progress-value {
+  background: var(--cyan);
+  border-radius: 3px;
+  transition: width 0.1s ease;
+}
+
+/* ============================================================
+   Hardware Deployment
+   ============================================================ */
+
+.hardware-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow);
+}
+
+.hardware-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.hardware-info {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+}
+
+.hardware-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-2);
+}
+
+.hardware-info-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.hardware-info-grid span {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hardware-info-grid strong {
+  font-size: 0.85rem;
+  color: var(--cyan);
+}
+
+.hardware-code-container {
+  margin-top: var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: var(--muted);
+}
+
+.hardware-code {
+  background: #0a0e12;
+  color: #e6edf3;
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  max-height: 500px;
+  overflow-y: auto;
+  margin: 0;
+  white-space: pre;
+  tab-size: 4;
+}
+
+.hardware-code code {
+  display: block;
+}
+
+/* ============================================================
    Responsive Breakpoints
    ============================================================ */
 
@@ -1373,6 +1560,8 @@ footer {
   .comparison-grid { grid-template-columns: 1fr; }
   .comparison-row { grid-template-columns: 1fr 1fr 1fr; font-size: 0.7rem; }
   .live-sim-controls { grid-template-columns: 1fr; }
+  .dsp-grid { grid-template-columns: 1fr; }
+  .hardware-controls { flex-direction: column; align-items: stretch; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1399,7 +1588,9 @@ footer {
 .topology-panel,
 .media-section,
 .provenance,
-.alerts-section {
+.alerts-section,
+.dsp-section,
+.hardware-section {
   animation: fade-up 0.5s ease both;
 }
 
@@ -1411,3 +1602,5 @@ footer {
 .adversarial-section { animation-delay: 0.28s; }
 .media-section { animation-delay: 0.3s; }
 .provenance { animation-delay: 0.35s; }
+.dsp-section { animation-delay: 0.4s; }
+.hardware-section { animation-delay: 0.45s; }

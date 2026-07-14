@@ -305,6 +305,62 @@
         </div>
       </section>
 
+      <section class="dsp-section" id="dsp-section" aria-labelledby="dsp-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Live DSP engine</p>
+            <h2 id="dsp-heading">Clarke Transform and phase portrait</h2>
+          </div>
+          <span class="dsp-fps" id="dsp-fps">0 FPS</span>
+        </div>
+        <p class="resilience-card-note">
+          Real-time Clarke Transform maps three-phase [Va, Vb, Vc] into
+          alpha-beta-zero coordinates. The phase portrait shows the circular
+          trajectory of balanced voltages and how faults warp the circle.
+        </p>
+        <div class="dsp-grid">
+          <div class="dsp-canvas-container">
+            <canvas
+              id="phase-portrait-canvas"
+              width="500"
+              height="500"
+              role="img"
+              aria-label="Phase portrait showing alpha-beta voltage trajectory. Balanced voltages form a circle; faults warp the shape."
+            ></canvas>
+            <div class="dsp-readout">
+              <span>V_α: <strong id="clarke-alpha">0.000</strong></span>
+              <span>V_β: <strong id="clarke-beta">0.000</strong></span>
+              <span>V_0: <strong id="clarke-zero">0.000</strong></span>
+            </div>
+          </div>
+          <div class="dsp-metrics">
+            <div class="dsp-metric">
+              <span>Phase imbalance</span>
+              <strong id="dsp-imbalance">0.00%</strong>
+              <progress id="dsp-imbalance-meter" max="1" value="0"></progress>
+            </div>
+            <div class="dsp-metric">
+              <span>Zero sequence</span>
+              <strong id="dsp-zero-seq">0.00%</strong>
+              <progress id="dsp-zero-seq-meter" max="1" value="0"></progress>
+            </div>
+            <div class="dsp-metric">
+              <span>Harmonic ratio</span>
+              <strong id="dsp-harmonic-ratio">0.00%</strong>
+              <progress id="dsp-harmonic-ratio-meter" max="1" value="0"></progress>
+            </div>
+            <div class="dsp-metric">
+              <span>Dominant harmonic</span>
+              <strong id="dsp-dominant-h">—</strong>
+            </div>
+            <div class="dsp-metric">
+              <span>Decision gate</span>
+              <span class="live-sim-badge" id="dsp-decision-badge" data-state="normal">normal</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="alerts-section" aria-labelledby="alerts-heading">
         <div class="panel-heading">
           <div>
@@ -447,6 +503,56 @@
           <button class="report-download" id="download-report" type="button" disabled>
             Download self-contained report
           </button>
+        </div>
+      </section>
+
+      <section class="hardware-section" id="hardware-section" aria-labelledby="hardware-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Hardware deployment</p>
+            <h2 id="hardware-heading">TinyML bridge for embedded inference</h2>
+          </div>
+        </div>
+        <p class="resilience-card-note">
+          Generate platform-specific C++ code for deploying the autoencoder
+          on STM32, Arduino, or ESP32 microcontrollers. The generated code
+          includes Clarke Transform, 1D convolution, ReLU, and the full
+          inference loop.
+        </p>
+        <div class="hardware-controls">
+          <div class="live-sim-group">
+            <label for="hw-platform">Target platform</label>
+            <select id="hw-platform">
+              <option value="stm32">STM32F4/H7 (ARM Cortex-M)</option>
+              <option value="arduino">Arduino Uno/Mega (AVR)</option>
+              <option value="esp32">ESP32/ESP32-S3 (Xtensa)</option>
+            </select>
+          </div>
+          <button class="control-button" id="hw-generate" type="button">
+            Generate C++ code
+          </button>
+          <button class="control-button control-button--quiet" id="hw-download" type="button" disabled>
+            Download .ino / .cpp
+          </button>
+        </div>
+        <div class="hardware-info" id="hardware-info" hidden>
+          <div class="hardware-info-grid">
+            <div><span>Platform</span><strong id="hw-platform-name">—</strong></div>
+            <div><span>Architecture</span><strong id="hw-arch">—</strong></div>
+            <div><span>Flash</span><strong id="hw-flash">—</strong></div>
+            <div><span>RAM</span><strong id="hw-ram">—</strong></div>
+            <div><span>Clock</span><strong id="hw-clock">—</strong></div>
+            <div><span>Features</span><strong id="hw-features">—</strong></div>
+          </div>
+        </div>
+        <div class="hardware-code-container" id="hardware-code-container" hidden>
+          <div class="code-header">
+            <span id="hw-code-filename">grid_sentinel_inference.cpp</span>
+            <button class="control-button control-button--quiet" id="hw-copy" type="button">
+              Copy to clipboard
+            </button>
+          </div>
+          <pre class="hardware-code" id="hardware-code"><code id="hw-code-content"></code></pre>
         </div>
       </section>
     </main>

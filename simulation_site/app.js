@@ -6,6 +6,25 @@ import {
   nextPollDelay,
 } from "./logic.mjs";
 
+import {
+  clarkeTransformBatch,
+  renderPhasePortrait,
+  computeThd,
+  generateThreePhaseSignal,
+} from "./dsp-engine.js";
+
+import {
+  forwardPass,
+  setThresholds,
+  analyzeWaveform,
+} from "./autoencoder-sim.js";
+
+import {
+  generateCppCode,
+  getPlatformInfo,
+  downloadCppFile,
+} from "./hardware-export.js";
+
 const MAX_RESULTS_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 10_000;
 const RESULTS_URL = "simulation_results.json";
@@ -196,6 +215,10 @@ async function loadResults({ announce = true, url } = {}) {
     state.data = data;
     state.resultsSha256 = resultsSha256;
     state.records = data.replay.records;
+
+    // Set thresholds for autoencoder simulation
+    setThresholds(data.training.calibration.threshold, data.config.thd_limit);
+
     if (changedRun || targetUrl !== state.activeRunUrl) {
       state.current = 0;
       state.scan = 0;
@@ -1105,7 +1128,10 @@ function animate(timestamp) {
     if (ticks > 0) stepTicks(ticks);
   }
   if (window.GridTopology) window.GridTopology.frame();
-  if (state.playing) requestAnimationLoop();
+  // Update DSP engine at 60fps (always, even when paused)
+  updateDspEngine();
+  // Keep animation running for DSP updates
+  requestAnimationLoop();
 }
 
 byId("play-button").addEventListener("click", () => {
@@ -1703,7 +1729,132 @@ byId("run-select").addEventListener("change", (event) => {
   });
 });
 
+// --- DSP Engine Integration ---
+
+let dspFrameCount = 0;
+let dspLastFpsTime = performance.now();
+
+function updateDspEngine() {
+  if (!state.data || !state.records.length) return;
+  const record = state.records[state.current];
+  if (!record) return;
+
+  // Use the actual waveform data from the record
+  const va = record.actual[0];
+  const vb = record.actual[1];
+  const vc = record.actual[2];
+
+  // Apply fault if live simulation is active
+  let vaFault = va, vbFault = vb, vcFault = vc;
+  if (liveState.enabled) {
+    const modified = deepCopyRecord(record);
+    applyFault(modified);
+    vaFault = modified.actual[0];
+    vbFault = modified.actual[1];
+    vcFault = modified.actual[2];
+  }
+
+  // Compute Clarke Transform
+  const clarke = clarkeTransformBatch(vaFault, vbFault, vcFault);
+
+  // Render phase portrait
+  const canvas = byId("phase-portrait-canvas");
+  if (canvas) {
+    renderPhasePortrait(canvas, clarke, {
+      trailLength: 2048,
+      isFault: liveState.enabled && liveState.type !== "none",
+    });
+  }
+
+  // Run autoencoder analysis
+  const analysis = forwardPass(vaFault, vbFault, vcFault);
+
+  // Update DSP metrics
+  setText("clarke-alpha", clarke.alpha[clarke.alpha.length - 1]?.toFixed(4) || "0.0000");
+  setText("clarke-beta", clarke.beta[clarke.beta.length - 1]?.toFixed(4) || "0.0000");
+  setText("clarke-zero", clarke.zero[clarke.zero.length - 1]?.toFixed(4) || "0.0000");
+
+  setText("dsp-imbalance", `${(analysis.imbalance * 100).toFixed(2)}%`);
+  setText("dsp-zero-seq", `${(analysis.zeroSequence * 100).toFixed(2)}%`);
+  setText("dsp-harmonic-ratio", `${(analysis.harmonicRatio * 100).toFixed(2)}%`);
+
+  const domH = analysis.dominantHarmonic;
+  setText("dsp-dominant-h", domH.harmonic > 0 ? `H${domH.harmonic}` : "—");
+
+  // Update progress meters
+  const imbalanceMeter = byId("dsp-imbalance-meter");
+  const zeroSeqMeter = byId("dsp-zero-seq-meter");
+  const harmonicMeter = byId("dsp-harmonic-ratio-meter");
+  if (imbalanceMeter) imbalanceMeter.value = Math.min(analysis.imbalance * 5, 1);
+  if (zeroSeqMeter) zeroSeqMeter.value = Math.min(analysis.zeroSequence * 5, 1);
+  if (harmonicMeter) harmonicMeter.value = Math.min(analysis.harmonicRatio * 5, 1);
+
+  // Update decision badge
+  const badge = byId("dsp-decision-badge");
+  if (badge) {
+    badge.dataset.state = analysis.prediction === "anomaly" ? "anomaly" : "normal";
+    badge.textContent = analysis.prediction === "anomaly" ? "ALARM" : "normal";
+  }
+
+  // Update FPS counter
+  dspFrameCount++;
+  const now = performance.now();
+  if (now - dspLastFpsTime >= 1000) {
+    setText("dsp-fps", `${dspFrameCount} FPS`);
+    dspFrameCount = 0;
+    dspLastFpsTime = now;
+  }
+}
+
+// --- Hardware Deployment ---
+
+let generatedCppCode = "";
+let generatedFilename = "";
+
+byId("hw-generate").addEventListener("click", () => {
+  const platform = byId("hw-platform").value;
+  const info = getPlatformInfo(platform);
+
+  // Update platform info
+  byId("hw-platform-name").textContent = info.name;
+  byId("hw-arch").textContent = info.architecture;
+  byId("hw-flash").textContent = info.flash;
+  byId("hw-ram").textContent = info.ram;
+  byId("hw-clock").textContent = info.clock;
+  byId("hw-features").textContent = info.features.join(", ");
+  byId("hardware-info").hidden = false;
+
+  // Generate code
+  generatedCppCode = generateCppCode(platform);
+  const extensions = { stm32: ".cpp", arduino: ".ino", esp32: ".cpp" };
+  generatedFilename = `grid_sentinel_inference${extensions[platform] || ".cpp"}`;
+
+  // Display code
+  byId("hw-code-filename").textContent = generatedFilename;
+  byId("hw-code-content").textContent = generatedCppCode;
+  byId("hardware-code-container").hidden = false;
+  byId("hw-download").disabled = false;
+});
+
+byId("hw-download").addEventListener("click", () => {
+  if (generatedCppCode) {
+    downloadCppFile(generatedCppCode, generatedFilename);
+  }
+});
+
+byId("hw-copy").addEventListener("click", () => {
+  if (generatedCppCode) {
+    navigator.clipboard.writeText(generatedCppCode).then(() => {
+      const btn = byId("hw-copy");
+      const originalText = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = originalText; }, 2000);
+    });
+  }
+});
+
 updatePlayButton();
 renderSimClock();
 loadResults();
-if (state.playing) requestAnimationLoop();
+// Start animation loop for DSP engine updates (always running)
+requestAnimationLoop();
