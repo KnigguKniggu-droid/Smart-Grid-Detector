@@ -24,9 +24,13 @@ smart-grid-detector/
 │   ├── styles.css
 │   ├── app.js
 │   ├── logic.mjs                   # DOM-free clock, aggregation, schema validation
+│   ├── dsp-engine.js               # Clarke Transform, FFT, phase portrait (NEW)
+│   ├── autoencoder-sim.js          # Client-side autoencoder simulation (NEW)
+│   ├── hardware-export.js          # C++ code generation for embedded (NEW)
 │   ├── topology3d.js               # Three.js 3D grid topology
 │   ├── topology-loader.js
 │   ├── simulation_results.json     # Recorded run data
+│   ├── simulation_results_alt.json # Comparison run (seed 137)
 │   ├── grid_dispatches.json        # Self-healing dispatch data
 │   ├── adversarial_resilience.json # 9 adversarial/sensor-failure scenarios
 │   ├── smart_grid_explainer.mp4    # Generated from run artifacts
@@ -41,6 +45,7 @@ smart-grid-detector/
 ├── CLAUDE.md                       # Project rules + task-observer activation
 ├── AGENTS.md                       # Agent instructions
 ├── GOOGLE_AI_PROJECT_HANDOFF.md    # Authoritative continuation guide
+├── SESSION_HANDOFF.md              # This file
 └── SIMULATION_RESULTS.md
 ```
 
@@ -113,6 +118,35 @@ smart-grid-detector/
 - Includes: run metadata, validation metrics, confusion matrix, training info, alert ledger, adversarial resilience
 - No external dependencies; works offline
 - Button disabled until data loads, styled with cyan gradient
+
+### 5. Multi-Run Comparison
+- Run selector dropdown in topbar to switch between seed 42 and seed 137
+- `simulation_results_alt.json` (seed 137) for comparison
+- Comparison section with training/validation/calibration/alerts side-by-side
+- `DASHBOARD_PUBLIC_PATHS` updated to include alt file
+- `vercel.json` cache-control for alt file
+
+### 6. Accessibility Audit
+- `aria-live="polite"` on comparison and run selector
+- `aria-describedby` on run selector
+- Global keyboard nav (left/right arrows for records, spacebar for play/pause)
+- Screen-reader-only comparison summary
+
+### 7. Live Simulation Mode (Fault Injection)
+- 8 fault types: amplitude sag/swell, phase offset, harmonic injection, Gaussian noise, DC offset, frequency drift
+- Severity slider and phase selector
+- Real-time reconstruction error and THD computation
+- Waveform canvas redraws with injected faults
+- Alarm/normal badge updates
+
+### 8. Live DSP Engine (NEW)
+- `dsp-engine.js`: Clarke Transform (abc to alpha-beta-zero), FFT-based THD, phase portrait renderer, three-phase signal generator
+- `autoencoder-sim.js`: Client-side forward pass using Clarke Transform phase imbalance and harmonic analysis to estimate reconstruction error
+- `hardware-export.js`: Generates platform-specific C++ code for STM32, Arduino, and ESP32
+- Phase portrait canvas: real-time alpha-beta trajectory visualization showing circular path of balanced voltages and fault warping
+- DSP metrics panel: phase imbalance, zero-sequence, harmonic ratio, dominant harmonic, decision gate badge
+- Hardware deployment panel: platform selector, code generation, download, copy to clipboard
+- All wired into the animation loop at 60fps
 
 ## Key things to know
 

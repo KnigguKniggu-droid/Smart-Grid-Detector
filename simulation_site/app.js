@@ -4,6 +4,7 @@ import {
   createSimClock,
   dispatchCacheMatches,
   nextPollDelay,
+  sectionOf,
 } from "./logic.mjs";
 
 import {
@@ -70,6 +71,7 @@ const simClock = createSimClock();
 window.GridReplay = {
   get state() { return state; },
   get tick() { return simClock.tick; },
+  get liveState() { return liveState; },
 };
 
 const byId = (id) => document.getElementById(id);
@@ -1858,3 +1860,32 @@ renderSimClock();
 loadResults();
 // Start animation loop for DSP engine updates (always running)
 requestAnimationLoop();
+
+// --- 3D Topology Bidirectional Interaction ---
+document.addEventListener("grid-sentinel:section-click", (event) => {
+  const { section } = event.detail;
+  // Find the first record belonging to this section
+  const targetRecord = state.records.findIndex(
+    (r) => sectionOf(r.source_index) === section,
+  );
+  if (targetRecord >= 0) {
+    selectRecord(targetRecord);
+  }
+  // Auto-enable live simulation with a default fault type
+  if (!liveState.enabled) {
+    liveState.enabled = true;
+    liveState.type = "amplitude_sag";
+    liveState.severity = 0.5;
+    byId("live-sim-enabled").checked = true;
+    byId("live-sim-controls").classList.add("active");
+    byId("fault-type").value = "amplitude_sag";
+    byId("fault-severity").value = "0.5";
+    byId("fault-severity-value").textContent = "0.50";
+  }
+  applyLiveSimulation();
+  drawWaveformWithFault();
+
+  // Scroll to the topology panel for visibility
+  const panel = document.querySelector(".topology-panel");
+  if (panel) panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});

@@ -51,6 +51,22 @@ let needsRender = true;
 let frameQueued = false;
 let lastA11yKey = "";
 
+// --- Live telemetry binding ---
+let faultSection = -1;
+let currentMseRatio = 0;
+let currentThdRatio = 0;
+let liveFaultActive = false;
+
+// --- Raycasting ---
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let interactiveObjects = [];
+
+// --- Fault visualization materials & lights ---
+let faultConductorMaterial = null;
+let towerPointLight = null;
+let hologramLayers = [];
+
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const orbit = {
@@ -509,6 +525,14 @@ const canopyMaterial = new THREE.MeshStandardMaterial({
 });
 const contactShadowMaterial = new THREE.MeshBasicMaterial({
   map: contactShadowTexture(), transparent: true, depthWrite: false,
+});
+
+faultConductorMaterial = new THREE.MeshStandardMaterial({
+  color: 0xe6482e,
+  emissive: 0xff3311,
+  emissiveIntensity: 0.6,
+  roughness: 0.35,
+  metalness: 0.85,
 });
 
 // ---------------------------------------------------------------------------
@@ -1148,6 +1172,11 @@ function buildStaticScene() {
   sectionUnits = [];
   decisionBeacon = null;
   nnLabelSprite = null;
+  interactiveObjects = [];
+  hologramLayers = [];
+  faultSection = -1;
+  currentMseRatio = 0;
+  liveFaultActive = false;
   const random = mulberry32(42);
   scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xdfe9f2, 60, 150);
@@ -1289,7 +1318,7 @@ function buildStaticScene() {
     const angle = (section / SECTIONS) * Math.PI * 2;
     const direction = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
     const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x);
-    const unit = { pulses: [], curves: [] };
+    const unit = { pulses: [], curves: [], conductors: [] };
 
     const takeoff = makeTakeoffStructure();
     takeoff.position.copy(direction.clone().multiplyScalar(4.6)).setY(0.12);
@@ -1345,6 +1374,10 @@ function buildStaticScene() {
         const { mesh, curve } = conductorSpan(
           anchorRows[span][phase], anchorRows[span + 1][phase],
         );
+        mesh.userData.sectionIndex = section;
+        mesh.userData.type = "conductor";
+        interactiveObjects.push(mesh);
+        unit.conductors.push(mesh);
         scene.add(mesh);
         if (LATERALS[phase] === 0) unit.curves.push(curve);
       }
@@ -1365,6 +1398,9 @@ function buildStaticScene() {
       new THREE.MeshBasicMaterial({ color: OVERLAY.cyan }),
     );
     beacon.position.copy(lastBase).setY(CENTER_ATTACH_Y + 0.7);
+    beacon.userData.sectionIndex = section;
+    beacon.userData.type = "beacon";
+    interactiveObjects.push(beacon);
     scene.add(beacon);
     unit.beacon = beacon;
 
@@ -1397,6 +1433,7 @@ function buildStaticScene() {
       }),
     );
     layer.position.copy(houseBase).y = 3.2 + index * 0.34;
+    hologramLayers.push(layer);
     scene.add(layer);
   });
   decisionBeacon = new THREE.Mesh(
@@ -1405,6 +1442,9 @@ function buildStaticScene() {
   );
   decisionBeacon.position.copy(houseBase).y = 5.9;
   scene.add(decisionBeacon);
+  towerPointLight = new THREE.PointLight(0x1fb6a8, 0.5, 18, 2);
+  towerPointLight.position.copy(houseBase).y = 5.6;
+  scene.add(towerPointLight);
   nnLabelSprite = makeLabelSprite(
     "GridWaveformAutoencoder", "loading…", "#ffb84d", true,
   );
@@ -1421,13 +1461,118 @@ function buildStaticScene() {
   if (renderer) renderer.shadowMap.needsUpdate = true;
 }
 
-function currentEvidence() {
+function computeFaultedRecord(record, live) {
+  if (!live || !live.enabled || live.type === "none") return null;
+  const modified = {
+    ...record,
+    actual: record.actual.map((p) => [...p]),
+    reconstruction: record.reconstruction.map((p) => [...p]),
+    triggers: [...record.triggers],
+  };
+  const phases = live.phase === "all" ? [0, 1, 2] : [Number(live.phase)];
+  const amp = live.severity * 0.4;
+  for (const p of phases) {
+    const a = modified.actual[p];
+    const len = a.length;
+    switch (live.type) {
+      case "amplitude_sag":
+        for (let i = 0; i < len; i++) a[i] *= (1 - amp);
+        break;
+      case "amplitude_swell":
+        for (let i = 0; i < len; i++) a[i] *= (1 + amp);
+        break;
+      case "phase_offset": {
+        const s = Math.floor(amp * len * 0.3);
+        const buf = new Array(len);
+        for (let i = 0; i < len; i++) buf[i] = a[(i + s) % len];
+        for (let i = 0; i < len; i++) a[i] = buf[i];
+        break;
+      }
+      case "harmonic_injection":
+        for (let i = 0; i < len; i++) {
+          a[i] += amp * Math.sin(2 * Math.PI * 5 * (i / len));
+        }
+        break;
+      case "noise":
+        for (let i = 0; i < len; i++) {
+          a[i] += amp * (Math.random() * 2 - 1);
+        }
+        break;
+      case "dc_offset":
+        for (let i = 0; i < len; i++) a[i] += amp * 0.5;
+        break;
+      case "frequency_drift": {
+        const drift = amp * 0.08;
+        for (let i = 0; i < len; i++) {
+          a[i] *= Math.cos(
+            2 * Math.PI * (1 + drift * (i / len)) * (len / 512),
+          );
+        }
+        break;
+      }
+    }
+  }
+  let totalErr = 0;
+  for (let p = 0; p < 3; p++) {
+    let pe = 0;
+    for (let i = 0; i < modified.actual[p].length; i++) {
+      const d = modified.actual[p][i] - modified.reconstruction[p][i];
+      pe += d * d;
+    }
+    totalErr += pe / modified.actual[p].length;
+  }
+  modified.reconstruction_error = Math.sqrt(totalErr / 3);
+  let maxThd = 0;
+  for (let p = 0; p < 3; p++) {
+    const sig = modified.actual[p];
+    const n = sig.length;
+    if (n < 16) continue;
+    let fRe = 0;
+    let fIm = 0;
+    for (let i = 0; i < n; i++) {
+      const ang = (2 * Math.PI * i) / n;
+      fRe += sig[i] * Math.cos(ang);
+      fIm += sig[i] * Math.sin(ang);
+    }
+    fRe /= n;
+    fIm /= n;
+    const fAmp = Math.hypot(fRe, fIm);
+    if (fAmp < 1e-12) {
+      maxThd = Math.max(maxThd, 1);
+      continue;
+    }
+    let hPow = 0;
+    for (let h = 2; h <= 50; h++) {
+      let hRe = 0;
+      let hIm = 0;
+      for (let i = 0; i < n; i++) {
+        const ang = (2 * Math.PI * h * i) / n;
+        hRe += sig[i] * Math.cos(ang);
+        hIm += sig[i] * Math.sin(ang);
+      }
+      hRe /= n;
+      hIm /= n;
+      hPow += hRe * hRe + hIm * hIm;
+    }
+    maxThd = Math.max(maxThd, Math.sqrt(hPow) / fAmp);
+  }
+  modified.thd_ratio = maxThd;
+  modified.prediction =
+    modified.reconstruction_error > thresholdValue ||
+    maxThd > thdLimitValue
+      ? "anomaly"
+      : "normal";
+  return modified;
+}
+
+function currentEvidence(faultOverride) {
   const appState = window.GridReplay?.state;
   if (!appState?.records.length || !appState.data) {
     return null;
   }
   const record = appState.records[appState.current];
-  const points = record.actual[0].length;
+  const useRecord = faultOverride || record;
+  const points = useRecord.actual[0].length;
   const visible = Math.max(
     2, Math.min(points, Math.ceil(appState.scan * points)),
   );
@@ -1435,16 +1580,17 @@ function currentEvidence() {
   for (let phase = 0; phase < 3; phase += 1) {
     for (let index = 0; index < visible; index += 1) {
       const difference =
-        record.actual[phase][index] - record.reconstruction[phase][index];
+        useRecord.actual[phase][index] -
+        useRecord.reconstruction[phase][index];
       accumulated += difference * difference;
     }
   }
   return {
-    record,
+    record: useRecord,
     section: sectionOf(record.source_index),
     reconPercent: (accumulated / (3 * visible) / thresholdValue) * 100,
-    thdPercent: Number.isFinite(record.thd_ratio)
-      ? (record.thd_ratio / thdLimitValue) * 100
+    thdPercent: Number.isFinite(useRecord.thd_ratio)
+      ? (useRecord.thd_ratio / thdLimitValue) * 100
       : null,
   };
 }
@@ -1522,17 +1668,15 @@ function updateHud(evidence) {
 
 function frame() {
   if (!renderer || !scene) return;
-  // Skip all work when the panel is off-screen or the tab is hidden: the
-  // WebGL scene is expensive and should not drain the battery unseen.
   if (!isVisible || document.hidden) return;
 
+  const live = window.GridReplay?.liveState;
   const animating =
     !reducedMotion.matches && Boolean(window.GridReplay?.state.playing);
   const tick = window.GridReplay?.tick ?? 0;
   const tickDelta = Math.max(0, tick - lastTick);
   lastTick = tick;
-
-  if (!animating && !needsRender) return; // On-demand only under reduced motion.
+  if (!animating && !needsRender) return;
 
   if (animating && orbit.auto && !orbit.dragging) orbit.azimuth += 0.0016;
   camera.position.set(
@@ -1542,34 +1686,137 @@ function frame() {
   );
   camera.lookAt(orbit.target);
 
-  const evidence = currentEvidence();
+  // --- Compute evidence, with live fault override when active ---
+  liveFaultActive = live?.enabled && live?.type !== "none";
+  let faultedRecord = null;
+  if (liveFaultActive) {
+    const appState = window.GridReplay?.state;
+    if (appState?.records.length) {
+      faultedRecord = computeFaultedRecord(
+        appState.records[appState.current], live,
+      );
+    }
+  }
+  const evidence = faultedRecord
+    ? currentEvidence(faultedRecord)
+    : currentEvidence();
+
+  // --- MSE / THD ratios for tower light ---
+  if (evidence) {
+    currentMseRatio = Math.min(evidence.reconPercent / 100, 1);
+    currentThdRatio = evidence.thdPercent !== null
+      ? Math.min(evidence.thdPercent / 100, 1)
+      : 0;
+  }
+  faultSection = evidence ? evidence.section : -1;
+
   const pulseBlink = animating
     ? 0.72 + 0.28 * Math.sin(performance.now() * 0.006)
     : 1;
+
+  // --- Update feeder sections ---
   sectionUnits.forEach((unit, section) => {
     const active = evidence && evidence.section === section;
     const alerted = statsBySection[section] && statsBySection[section].alerts > 0;
-    unit.beacon.scale.setScalar(alerted ? pulseBlink * 1.25 : 1);
+    const isFaulted = liveFaultActive && active;
+
+    // Beacon: scale up when faulted or alerted, color by state
+    unit.beacon.scale.setScalar(
+      isFaulted ? pulseBlink * 1.5
+        : alerted ? pulseBlink * 1.25
+          : 1,
+    );
+    unit.beacon.material.color.setHex(
+      isFaulted ? OVERLAY.red : alerted ? OVERLAY.red : OVERLAY.cyan,
+    );
+
+    // Conductor material swap for live faults
+    for (const mesh of unit.conductors) {
+      if (isFaulted) {
+        if (mesh.material !== faultConductorMaterial) {
+          mesh.material = faultConductorMaterial;
+        }
+      } else {
+        if (mesh.material !== conductorMaterial) {
+          mesh.material = conductorMaterial;
+        }
+      }
+    }
+
+    // Energy pulses
     for (const pulse of unit.pulses) {
       if (animating) {
-        // Under reduced motion the pulses hold position instead of traveling.
-        pulse.offset = (pulse.offset + tickDelta * (active ? 0.006 : 0.003)) % 1;
+        pulse.offset =
+          (pulse.offset + tickDelta * (active ? 0.006 : 0.003)) % 1;
       }
       const spanPosition = pulse.offset * unit.curves.length;
-      const spanIndex = Math.min(unit.curves.length - 1, Math.floor(spanPosition));
-      unit.curves[spanIndex].getPointAt(
-        Math.min(spanPosition - spanIndex, 1), pulse.mesh.position,
+      const spanIndex = Math.min(
+        unit.curves.length - 1,
+        Math.floor(spanPosition),
       );
-      pulse.mesh.material.color.setHex(active ? OVERLAY.amber : OVERLAY.cyan);
+      unit.curves[spanIndex].getPointAt(
+        Math.min(spanPosition - spanIndex, 1),
+        pulse.mesh.position,
+      );
+      pulse.mesh.material.color.setHex(
+        isFaulted ? OVERLAY.red
+          : active ? OVERLAY.amber
+            : OVERLAY.cyan,
+      );
+    }
+
+    // Label: show fault detail when live fault active on this section
+    if (isFaulted) {
+      retextureSprite(
+        unit.label,
+        `SEC-${String(section).padStart(2, "0")}`,
+        `FAULT: ${live.type.replace(/_/g, " ")} sev ${live.severity.toFixed(2)}`,
+        "#ff4433",
+      );
+    } else {
+      const stats = statsBySection[section];
+      if (stats) {
+        retextureSprite(
+          unit.label,
+          `SEC-${String(section).padStart(2, "0")}`,
+          `${stats.alerts}/${stats.records} alerts · THD max ` +
+            `${(stats.maxThd * 100).toFixed(1)}%`,
+          alerted ? "#ff9d8a" : "#dce8ea",
+        );
+      }
     }
   });
+
+  // --- Edge-AI tower: decision beacon ---
   if (decisionBeacon && evidence) {
+    const isAnomaly = evidence.record.prediction === "anomaly";
     decisionBeacon.material.color.setHex(
-      evidence.record.prediction === "anomaly" ? OVERLAY.red : OVERLAY.cyan,
+      isAnomaly ? OVERLAY.red : OVERLAY.cyan,
     );
-    decisionBeacon.scale.setScalar(
-      evidence.record.prediction === "anomaly" ? pulseBlink * 1.35 : 1,
-    );
+    decisionBeacon.scale.setScalar(isAnomaly ? pulseBlink * 1.35 : 1);
+  }
+
+  // --- Tower point light: MSE-bound glow ---
+  if (towerPointLight) {
+    const t = currentMseRatio;
+    // Lerp from cyan (0x1f,0xb6,0xa8) to red (0xe6,0x48,0x2e)
+    const lr = 0x1f + Math.round((0xe6 - 0x1f) * t);
+    const lg = 0xb6 + Math.round((0x48 - 0xb6) * t);
+    const lb = 0xa8 + Math.round((0x2e - 0xa8) * t);
+    towerPointLight.color.setRGB(lr / 255, lg / 255, lb / 255);
+    // Intensity: calm 0.3 to alarming 3.0
+    towerPointLight.intensity = 0.3 + t * 2.7;
+    if (animating) {
+      towerPointLight.intensity *=
+        0.85 + 0.15 * Math.sin(performance.now() * 0.004);
+    }
+  }
+
+  // --- Hologram layers: color shift with MSE ---
+  for (const layer of hologramLayers) {
+    const t = currentMseRatio;
+    layer.material.color.setHex(t < 0.5 ? OVERLAY.cyan : OVERLAY.amber);
+    layer.material.opacity = 0.25 + t * 0.4;
   }
 
   updateHud(evidence);
@@ -1654,6 +1901,28 @@ function attachControls() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Raycasting: click a feeder section or beacon to select it
+// ---------------------------------------------------------------------------
+
+function onCanvasClick(event) {
+  if (!renderer || !scene || !camera) return;
+  const rect = canvasElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(interactiveObjects, false);
+  if (hits.length === 0) return;
+  const hit = hits[0].object;
+  const section = hit.userData.sectionIndex;
+  if (section === undefined || section < 0) return;
+  document.dispatchEvent(
+    new CustomEvent("grid-sentinel:section-click", {
+      detail: { section },
+    }),
+  );
+}
+
 function showFallback(message) {
   const hud = document.getElementById("topology-hud");
   if (hud) hud.textContent = message;
@@ -1699,6 +1968,7 @@ function init() {
     camera = new THREE.PerspectiveCamera(45, 2, 0.1, 300);
     buildStaticScene();
     attachControls();
+    canvasElement.addEventListener("click", onCanvasClick);
     resize();
 
     // Pause rendering when the panel scrolls out of view, resume (and draw one
