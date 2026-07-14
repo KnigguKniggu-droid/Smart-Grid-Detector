@@ -1070,6 +1070,43 @@ video {
   color: var(--muted-dim);
 }
 
+/* --- Provenance Actions --- */
+.provenance-actions {
+  grid-column: 1 / -1;
+  margin-top: 0.75rem;
+}
+.report-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--cyan-deep);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--cyan-deep), oklch(0.55 0.12 195));
+  color: var(--ink-strong);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+.report-download:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-deep));
+  box-shadow: var(--shadow), var(--shadow-glow);
+  transform: translateY(-1px);
+}
+.report-download:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+.report-download:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.report-download::before {
+  content: "\2B07";
+}
+
 /* --- Footer --- */
 footer {
   display: flex;

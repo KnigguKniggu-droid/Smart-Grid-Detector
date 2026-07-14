@@ -257,6 +257,8 @@ function renderAll() {
   renderTrainingCurve();
   renderAlerts();
   renderResilience(data);
+  const downloadBtn = byId("download-report");
+  if (downloadBtn) downloadBtn.disabled = false;
   if (window.GridTopology) window.GridTopology.update(state.data);
 }
 
@@ -1131,6 +1133,141 @@ document.addEventListener("visibilitychange", () => {
     }
   }
 });
+
+// --- Self-contained HTML report generation ---
+
+async function generateReport() {
+  const data = state.data;
+  if (!data) return;
+  const metrics = data.evaluation.metrics;
+  const calibration = data.training.calibration;
+  const training = data.training.epochs;
+  const completed = new Date(data.run.completed_at_utc);
+  const completedStr = Number.isNaN(completed.getTime()) ? "n/a" : completed.toLocaleString();
+  const finalLoss = training.length ? training.at(-1).mse.toFixed(8) : "n/a";
+  const alerts = data.evaluation.observations.filter((item) => item.prediction === "anomaly");
+  const alertRows = alerts.map((a) =>
+    `<tr><td>${a.index}</td><td>${a.anomaly_type}</td><td>${a.ground_truth}</td>` +
+    `<td>${a.reconstruction_error.toFixed(8)}</td>` +
+    `<td>${(a.thd_ratio * 100).toFixed(2)}%</td>` +
+    `<td>${a.triggers.join(", ") || "none"}</td></tr>`
+  ).join("\n");
+
+  let advHtml = "<p>Adversarial resilience data unavailable.</p>";
+  try {
+    const advResp = await fetch("adversarial_resilience.json", { cache: "no-store" });
+    if (advResp.ok) {
+      const adv = await advResp.json();
+      const advRows = adv.scenarios.map((s) =>
+        `<tr><td>${s.name}</td><td>${s.category}</td>` +
+        `<td style="color:${s.observed_detection === "flagged" ? "#f85149" : "#3fb950"}">${s.observed_detection}</td>` +
+        `<td>${s.detection_mechanism}</td></tr>`
+      ).join("\n");
+      advHtml = `<p>${adv.total_scenarios} scenarios tested. All correct: ${adv.all_correct ? "Yes" : "No"}.</p>` +
+        `<table><thead><tr><th>Scenario</th><th>Category</th><th>Detection</th><th>Mechanism</th></tr></thead><tbody>${advRows}</tbody></table>`;
+    }
+  } catch (_) { /* keep fallback */ }
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grid Sentinel Report — ${data.run.id}</title>
+<style>
+  :root { color-scheme: dark; --bg: #0e1117; --surface: #161b22; --border: #30363d; --ink: #e6edf3; --muted: #8b949e; --cyan: #58a6ff; --green: #3fb950; --red: #f85149; --amber: #d29922; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); padding: 2rem; line-height: 1.6; }
+  h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.15rem; margin: 1.8rem 0 0.6rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; text-align: center; }
+  .stat span { display: block; color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat strong { display: block; margin-top: 0.2rem; font-size: 1.3rem; color: var(--cyan); }
+  table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.82rem; }
+  th, td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.6rem; }
+  div { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; }
+  dt { color: var(--muted); font-size: 0.72rem; }
+  dd { margin: 0.15rem 0 0; font-family: monospace; font-size: 0.82rem; }
+  .limitation { margin-top: 1.2rem; padding: 0.7rem 0.9rem; border: 1px solid rgba(210,153,34,0.3); border-radius: 6px; background: rgba(210,153,34,0.08); color: var(--amber); font-size: 0.82rem; }
+  .footer { margin-top: 2rem; padding-top: 0.8rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.72rem; }
+</style>
+</head>
+<body>
+<h1>Grid Sentinel — Simulation Report</h1>
+<p class="subtitle">Self-contained export from recorded run ${data.run.id}</p>
+
+<h2>Run Metadata</h2>
+<dl>
+  <div><dt>Completed</dt><dd>${completedStr}</dd></div>
+  <div><dt>Seed</dt><dd>${data.config.seed}</dd></div>
+  <div><dt>Device</dt><dd>${data.model.device}</dd></div>
+  <div><dt>Model</dt><dd>${data.model.name} (${data.model.parameters.toLocaleString()} params)</dd></div>
+  <div><dt>Source hash</dt><dd>${data.provenance.source_sha256}</dd></div>
+  <div><dt>Runtime</dt><dd>Python ${data.provenance.python_version} · torch ${data.provenance.torch_version}</dd></div>
+</dl>
+
+<h2>Validation Metrics</h2>
+<div class="grid">
+  <div class="stat"><span>Accuracy</span><strong>${(metrics.accuracy * 100).toFixed(2)}%</strong></div>
+  <div class="stat"><span>Precision</span><strong>${(metrics.precision * 100).toFixed(2)}%</strong></div>
+  <div class="stat"><span>Recall</span><strong>${(metrics.recall * 100).toFixed(2)}%</strong></div>
+  <div class="stat"><span>F1 Score</span><strong>${(metrics.f1_score * 100).toFixed(2)}%</strong></div>
+  <div class="stat"><span>Inference Latency</span><strong>${metrics.inference_latency_ms.toFixed(2)} ms</strong></div>
+  <div class="stat"><span>Throughput</span><strong>${metrics.throughput_waveforms_per_second.toFixed(1)} /s</strong></div>
+</div>
+
+<h2>Confusion Matrix</h2>
+<table>
+  <thead><tr><th>TP</th><th>TN</th><th>FP</th><th>FN</th></tr></thead>
+  <tbody><tr><td>${metrics.true_positives}</td><td>${metrics.true_negatives}</td><td>${metrics.false_positives}</td><td>${metrics.false_negatives}</td></tr></tbody>
+</table>
+
+<h2>Training</h2>
+<dl>
+  <div><dt>Final loss</dt><dd>${finalLoss}</dd></div>
+  <div><dt>Calibration mean</dt><dd>${calibration.mean_error.toFixed(8)}</dd></div>
+  <div><dt>Calibration σ</dt><dd>${calibration.std_error.toFixed(8)}</dd></div>
+  <div><dt>Threshold</dt><dd>${calibration.threshold.toFixed(8)}</dd></div>
+  <div><dt>THD limit</dt><dd>${(data.config.thd_limit * 100).toFixed(2)}%</dd></div>
+  <div><dt>Epochs</dt><dd>${training.length}</dd></div>
+</dl>
+
+<h2>Alert Ledger (${alerts.length} flagged)</h2>
+<table>
+  <thead><tr><th>Index</th><th>Type</th><th>Truth</th><th>Recon. error</th><th>THD</th><th>Triggers</th></tr></thead>
+  <tbody>${alertRows || "<tr><td colspan='6'>No alerts</td></tr>"}</tbody>
+</table>
+
+<h2>Adversarial Resilience</h2>
+${advHtml}
+
+<div class="limitation">
+  Scope note: perfect performance on a seeded synthetic dataset is a pipeline
+  verification result, not a claim of utility-field accuracy.
+</div>
+<p class="footer">Generated from Grid Sentinel recorded replay. All data is deterministic and reproducible.</p>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `grid-sentinel-report-${data.run.id}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Enable download button when data loads
+const downloadButton = byId("download-report");
+if (downloadButton) {
+  downloadButton.addEventListener("click", generateReport);
+}
 
 updatePlayButton();
 renderSimClock();
