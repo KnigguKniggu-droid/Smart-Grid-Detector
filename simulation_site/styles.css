@@ -1192,6 +1192,99 @@ footer {
   margin-top: var(--space-4);
 }
 
+/* --- Live simulation section --- */
+.live-sim-section {
+  background: var(--surface-glass);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow);
+}
+.live-sim-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.live-sim-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.live-sim-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.live-sim-controls.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.live-sim-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.live-sim-group label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.live-sim-group select,
+.live-sim-group input[type="range"] {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.82rem;
+  padding: 0 0.5rem;
+}
+.live-sim-group input[type="range"] {
+  accent-color: var(--cyan);
+  min-height: auto;
+  padding: 0.3rem 0;
+}
+.live-sim-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+.live-sim-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.live-sim-badge[data-state="normal"] {
+  background: oklch(0.3 0.08 155 / 0.25);
+  color: var(--green);
+  border: 1px solid oklch(0.5 0.12 155 / 0.3);
+}
+.live-sim-badge[data-state="anomaly"] {
+  background: oklch(0.3 0.12 25 / 0.25);
+  color: var(--red);
+  border: 1px solid oklch(0.5 0.15 25 / 0.3);
+}
+
 /* ============================================================
    Responsive Breakpoints
    ============================================================ */
@@ -1279,6 +1372,7 @@ footer {
   .resilience-table th, .resilience-table td { padding: 0.25rem 0.4rem; }
   .comparison-grid { grid-template-columns: 1fr; }
   .comparison-row { grid-template-columns: 1fr 1fr 1fr; font-size: 0.7rem; }
+  .live-sim-controls { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

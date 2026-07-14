@@ -868,7 +868,12 @@ function renderCurrentRecord() {
     "waveform-summary",
     `Test record ${record.sample_index} is ${record.anomaly_type}. Ground truth is ${record.ground_truth}; prediction is ${record.prediction}. Reconstruction error is ${fixed(record.reconstruction_error, 8)} and THD is ${evidencePercent(record.thd_ratio)}.`,
   );
-  drawWaveform(record);
+  if (liveState.enabled) {
+    drawWaveformWithFault();
+    applyLiveSimulation();
+  } else {
+    drawWaveform(record);
+  }
 }
 
 function drawWaveform(record) {
@@ -1415,6 +1420,272 @@ function addComparisonRow(container, label, primaryVal, altVal) {
   row.appendChild(el("span", primaryVal, "comparison-value"));
   row.appendChild(el("span", altVal, "comparison-value"));
   container.appendChild(row);
+}
+
+// --- Live simulation (fault injection) ---
+
+const liveState = {
+  enabled: false,
+  type: "none",
+  severity: 0.5,
+  phase: "all",
+};
+
+function applyLiveSimulation() {
+  if (!liveState.enabled || !state.data || !state.records.length) return;
+  const record = state.records[state.current];
+  if (!record) return;
+
+  const thdLimit = state.data.config.thd_limit;
+  const calibration = state.data.training.calibration;
+
+  const modified = deepCopyRecord(record);
+  applyFault(modified);
+
+  const reconstructionRatio = evidenceRatio(modified.reconstruction_error, calibration.threshold);
+  const thdRatio = evidenceRatio(modified.thd_ratio, thdLimit);
+  const isAnomaly = reconstructionRatio >= 1 || thdRatio >= 1;
+
+  const badge = byId("live-sim-badge");
+  const detail = byId("live-sim-detail");
+  badge.dataset.state = isAnomaly ? "anomaly" : "normal";
+  badge.textContent = isAnomaly ? "ALARM" : "normal";
+  detail.textContent = isAnomaly
+    ? `${liveState.type.replace(/_/g, " ")}: recon ${(reconstructionRatio * 100).toFixed(0)}%, THD ${(thdRatio * 100).toFixed(0)}%`
+    : `${liveState.type.replace(/_/g, " ")}: below threshold`;
+}
+
+function deepCopyRecord(record) {
+  return {
+    ...record,
+    actual: record.actual.map((phase) => [...phase]),
+    reconstruction: record.reconstruction.map((phase) => [...phase]),
+    triggers: [...record.triggers],
+  };
+}
+
+function applyFault(record) {
+  const { type, severity, phase } = liveState;
+  if (type === "none") return;
+
+  const phases = phase === "all" ? [0, 1, 2] : [Number(phase)];
+  const amplitude = severity * 0.4;
+
+  for (const p of phases) {
+    const actual = record.actual[p];
+    const recon = record.reconstruction[p];
+    const len = actual.length;
+
+    switch (type) {
+      case "amplitude_sag":
+        for (let i = 0; i < len; i++) actual[i] *= (1 - amplitude);
+        break;
+      case "amplitude_swell":
+        for (let i = 0; i < len; i++) actual[i] *= (1 + amplitude);
+        break;
+      case "phase_offset": {
+        const shift = Math.floor(amplitude * len * 0.3);
+        const shifted = new Array(len);
+        for (let i = 0; i < len; i++) shifted[i] = actual[(i + shift) % len];
+        for (let i = 0; i < len; i++) actual[i] = shifted[i];
+        break;
+      }
+      case "harmonic_injection":
+        for (let i = 0; i < len; i++) {
+          const t = i / len;
+          actual[i] += amplitude * Math.sin(2 * Math.PI * 5 * t);
+        }
+        break;
+      case "noise":
+        for (let i = 0; i < len; i++) {
+          actual[i] += amplitude * (Math.random() * 2 - 1);
+        }
+        break;
+      case "dc_offset":
+        for (let i = 0; i < len; i++) actual[i] += amplitude * 0.5;
+        break;
+      case "frequency_drift": {
+        const drift = amplitude * 0.08;
+        for (let i = 0; i < len; i++) {
+          const t = i / len;
+          actual[i] *= Math.cos(2 * Math.PI * (1 + drift * t) * (len / 512));
+        }
+        break;
+      }
+    }
+  }
+
+  let totalError = 0;
+  for (let p = 0; p < 3; p++) {
+    let phaseError = 0;
+    for (let i = 0; i < record.actual[p].length; i++) {
+      const diff = record.actual[p][i] - record.reconstruction[p][i];
+      phaseError += diff * diff;
+    }
+    totalError += phaseError / record.actual[p].length;
+  }
+  record.reconstruction_error = Math.sqrt(totalError / 3);
+
+  let maxThd = 0;
+  for (let p = 0; p < 3; p++) {
+    const signal = record.actual[p];
+    const thd = computeSimpleThd(signal);
+    if (thd > maxThd) maxThd = thd;
+  }
+  record.thd_ratio = maxThd;
+  record.prediction = (record.reconstruction_error > state.data.training.calibration.threshold || maxThd > state.data.config.thd_limit) ? "anomaly" : "normal";
+  record.triggers = [];
+  if (record.reconstruction_error > state.data.training.calibration.threshold) record.triggers.push("reconstruction_error");
+  if (maxThd > state.data.config.thd_limit) record.triggers.push("thd");
+}
+
+function computeSimpleThd(signal) {
+  const n = signal.length;
+  if (n < 16) return 0;
+  let fundRe = 0, fundIm = 0;
+  for (let i = 0; i < n; i++) {
+    const angle = 2 * Math.PI * i / n;
+    fundRe += signal[i] * Math.cos(angle);
+    fundIm += signal[i] * Math.sin(angle);
+  }
+  fundRe /= n;
+  fundIm /= n;
+  const fundAmp = Math.sqrt(fundRe * fundRe + fundIm * fundIm);
+  if (fundAmp < 1e-12) return 1;
+  let harmonicPower = 0;
+  for (let h = 2; h <= 50; h++) {
+    let hRe = 0, hIm = 0;
+    for (let i = 0; i < n; i++) {
+      const angle = 2 * Math.PI * h * i / n;
+      hRe += signal[i] * Math.cos(angle);
+      hIm += signal[i] * Math.sin(angle);
+    }
+    hRe /= n;
+    hIm /= n;
+    harmonicPower += hRe * hRe + hIm * hIm;
+  }
+  return Math.sqrt(harmonicPower) / fundAmp;
+}
+
+byId("live-sim-enabled").addEventListener("change", (event) => {
+  liveState.enabled = event.target.checked;
+  const controls = byId("live-sim-controls");
+  controls.classList.toggle("active", liveState.enabled);
+  if (!liveState.enabled) {
+    byId("live-sim-badge").dataset.state = "normal";
+    byId("live-sim-badge").textContent = "normal";
+    byId("live-sim-detail").textContent = "No fault active";
+    renderCurrentRecord();
+  } else {
+    applyLiveSimulation();
+    drawWaveformWithFault();
+  }
+});
+
+byId("fault-type").addEventListener("change", (event) => {
+  liveState.type = event.target.value;
+  if (liveState.enabled) {
+    applyLiveSimulation();
+    drawWaveformWithFault();
+  }
+});
+
+byId("fault-severity").addEventListener("input", (event) => {
+  liveState.severity = Number(event.target.value);
+  byId("fault-severity-value").textContent = liveState.severity.toFixed(2);
+  if (liveState.enabled) {
+    applyLiveSimulation();
+    drawWaveformWithFault();
+  }
+});
+
+byId("fault-phase").addEventListener("change", (event) => {
+  liveState.phase = event.target.value;
+  if (liveState.enabled) {
+    applyLiveSimulation();
+    drawWaveformWithFault();
+  }
+});
+
+function drawWaveformWithFault() {
+  if (!liveState.enabled || !state.data || !state.records.length) return;
+  const record = state.records[state.current];
+  if (!record) return;
+
+  const modified = deepCopyRecord(record);
+  applyFault(modified);
+
+  const canvas = byId("waveform-canvas");
+  const context = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const margin = { left: 64, right: 24, top: 24, bottom: 48 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const colors = ["#36d6c7", "#7aa8ff", "#ffb84d"];
+  const pointCount = state.data.replay.time_ms.length;
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "#081014";
+  context.fillRect(0, 0, width, height);
+
+  context.strokeStyle = "#23363a";
+  context.fillStyle = "#9fb6b0";
+  context.font = "14px ui-monospace, monospace";
+  context.lineWidth = 1;
+  for (let index = 0; index <= 6; index += 1) {
+    const x = margin.left + (plotWidth * index) / 6;
+    context.beginPath();
+    context.moveTo(x, margin.top);
+    context.lineTo(x, margin.top + plotHeight);
+    context.stroke();
+    const time = state.data.replay.time_ms[Math.round(((pointCount - 1) * index) / 6)];
+    context.fillText(`${fixed(time, 1)}`, x - 14, height - 18);
+  }
+  for (let index = 0; index <= 4; index += 1) {
+    const y = margin.top + (plotHeight * index) / 4;
+    context.beginPath();
+    context.moveTo(margin.left, y);
+    context.lineTo(margin.left + plotWidth, y);
+    context.stroke();
+    context.fillText((1.5 - index * 0.75).toFixed(2), 10, y + 5);
+  }
+
+  const yFor = (value) => margin.top + plotHeight / 2 - (finiteNumber(value) / 1.5) * (plotHeight / 2);
+  for (let phase = 0; phase < 3; phase += 1) {
+    const actual = modified.actual[phase];
+    const reconstruction = record.reconstruction[phase];
+    context.strokeStyle = colors[phase];
+    context.lineWidth = 2.5;
+    context.setLineDash([]);
+    context.beginPath();
+    actual.forEach((value, index) => {
+      const x = margin.left + (plotWidth * index) / Math.max(actual.length - 1, 1);
+      const y = yFor(value);
+      if (index === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.stroke();
+
+    context.strokeStyle = "#9fb6b0";
+    context.lineWidth = 1.2;
+    context.setLineDash([7, 7]);
+    context.beginPath();
+    reconstruction.forEach((value, index) => {
+      const x = margin.left + (plotWidth * index) / Math.max(reconstruction.length - 1, 1);
+      const y = yFor(value);
+      if (index === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.stroke();
+  }
+  context.setLineDash([]);
+  const cursorX = margin.left + plotWidth * state.scan;
+  context.strokeStyle = "#eef7f3";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(cursorX, margin.top);
+  context.lineTo(cursorX, margin.top + plotHeight);
+  context.stroke();
 }
 
 // --- Run selector ---

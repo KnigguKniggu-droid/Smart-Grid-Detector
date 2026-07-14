@@ -255,6 +255,56 @@
         <p class="sr-only" id="comparison-a11y" role="status" aria-live="polite"></p>
       </section>
 
+      <section class="live-sim-section" id="live-sim-section" aria-labelledby="live-sim-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Interactive fault injection</p>
+            <h2 id="live-sim-heading">Simulate anomalies in real time</h2>
+          </div>
+          <label class="live-sim-toggle">
+            <input type="checkbox" id="live-sim-enabled" />
+            <span>Enable live simulation</span>
+          </label>
+        </div>
+        <p class="resilience-card-note">
+          Modify the loaded waveform with synthetic faults and see how the
+          detector thresholds respond. Changes apply to the current record
+          in real time without altering the underlying recorded data.
+        </p>
+        <div class="live-sim-controls" id="live-sim-controls">
+          <div class="live-sim-group">
+            <label for="fault-type">Fault type</label>
+            <select id="fault-type">
+              <option value="none">None (clean signal)</option>
+              <option value="amplitude_sag">Amplitude sag</option>
+              <option value="amplitude_swell">Amplitude swell</option>
+              <option value="phase_offset">Phase offset</option>
+              <option value="harmonic_injection">Harmonic injection</option>
+              <option value="noise">Gaussian noise</option>
+              <option value="dc_offset">DC offset</option>
+              <option value="frequency_drift">Frequency drift</option>
+            </select>
+          </div>
+          <div class="live-sim-group">
+            <label for="fault-severity">Severity <span id="fault-severity-value">0.50</span></label>
+            <input type="range" id="fault-severity" min="0" max="1" step="0.01" value="0.50" />
+          </div>
+          <div class="live-sim-group">
+            <label for="fault-phase">Affected phase</label>
+            <select id="fault-phase">
+              <option value="all">All phases</option>
+              <option value="0">Phase A only</option>
+              <option value="1">Phase B only</option>
+              <option value="2">Phase C only</option>
+            </select>
+          </div>
+          <div class="live-sim-result" id="live-sim-result">
+            <span class="live-sim-badge" id="live-sim-badge" data-state="normal">normal</span>
+            <span id="live-sim-detail">No fault active</span>
+          </div>
+        </div>
+      </section>
+
       <section class="alerts-section" aria-labelledby="alerts-heading">
         <div class="panel-heading">
           <div>
