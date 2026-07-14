@@ -30,7 +30,7 @@ const OVERLAY = {
 
 const POLE_HEIGHT = 4.2;
 const OUTER_ATTACH_Y = 4.25;
-const CENTER_ATTACH_Y = 4.56;
+const CENTER_ATTACH_Y = 4.68;
 const TAKEOFF_ATTACH_Y = 4.3;
 const LATERALS = [-0.75, 0, 0.75];
 
@@ -755,7 +755,7 @@ function makeTransformer() {
   plinth.position.y = 0.12;
   unit.add(plinth);
   const shadow = contactShadow(3.4, 2.7);
-  shadow.position.y = 0.005;
+  shadow.position.y = 0.02;
   unit.add(shadow);
   for (const side of [-1, 1]) {
     const rail = shadowed(new THREE.Mesh(
@@ -886,7 +886,7 @@ function makeTransformer() {
       pinInsulatorGeometry, porcelainGrayMaterial,
     ));
     lv.scale.setScalar(0.85);
-    lv.rotation.x = Math.PI / 2;
+    lv.rotation.x = -Math.PI / 2;
     lv.position.set(offset, tankY + 0.42, -0.62);
     unit.add(lv);
   }
@@ -951,7 +951,7 @@ function makeGantry(width = 7) {
     ));
     diagonal.position.set(x0 + width / bays / 2, 4.36, 0);
     diagonal.rotation.z = (bay % 2 ? 1 : -1) *
-      Math.atan2(width / bays, 0.32) - Math.PI / 2;
+      Math.atan2(width / bays, 0.32);
     gantry.add(diagonal);
   }
   return gantry;
@@ -1122,6 +1122,8 @@ function disposeSceneGraph() {
   if (!scene) return;
   const disposedTextures = new Set();
   scene.traverse((object) => {
+    // Shadow-casting lights own a render target that dispose() must free.
+    if (object.isLight) object.dispose?.();
     object.geometry?.dispose?.();
     const materials = Array.isArray(object.material)
       ? object.material
@@ -1232,15 +1234,18 @@ function buildStaticScene() {
       new THREE.CylinderGeometry(0.055, 0.055, 6.8, 12), aluminumMaterial,
     ));
     busbar.rotation.x = Math.PI / 2;
-    busbar.position.set(offset, 4.28, 0);
+    busbar.position.set(offset, 5.08, 0);
     scene.add(busbar);
     for (const z of [-3.4, 3.4]) {
+      // Upright post insulator standing on the gantry top chord. The gantry
+      // group is lifted 0.12, so the chord's top face sits at world
+      // y = 0.12 + 4.52 + 0.06 = 4.70; the 0.343-tall post carries the bus
+      // at its tip (~5.04).
       const post = shadowed(new THREE.Mesh(
         pinInsulatorGeometry, porcelainGrayMaterial,
       ));
       post.scale.setScalar(1.15);
-      post.position.set(offset, 4.66, z);
-      post.rotation.x = Math.PI;
+      post.position.set(offset, 4.7, z);
       scene.add(post);
     }
   }
@@ -1266,6 +1271,8 @@ function buildStaticScene() {
   }
   for (let bush = 0; bush < 12; bush += 1) {
     const angle = random() * Math.PI * 2;
+    // Keep the +x access-road corridor clear, same as the tree ring.
+    if (Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) < 0.35) continue;
     const distance = 10.5 + random() * 9;
     const bushMesh = shadowed(new THREE.Mesh(bushGeometry, canopyMaterial));
     bushMesh.position.set(
@@ -1408,6 +1415,10 @@ function buildStaticScene() {
     new THREE.Vector3(3.5, 4.35, -3.4), mastTip, 0.5,
   );
   scene.add(feed.mesh);
+
+  // One-time shadow render for the freshly built static scene (autoUpdate
+  // is off; see init()).
+  if (renderer) renderer.shadowMap.needsUpdate = true;
 }
 
 function currentEvidence() {
@@ -1592,7 +1603,11 @@ function attachControls() {
     orbit.dragging = true;
     orbit.lastX = event.clientX;
     orbit.lastY = event.clientY;
-    canvasElement.setPointerCapture(event.pointerId);
+    try {
+      canvasElement.setPointerCapture(event.pointerId);
+    } catch {
+      // Synthetic pointer events have no active pointer to capture.
+    }
   });
   canvasElement.addEventListener("pointermove", (event) => {
     if (!orbit.dragging) return;
@@ -1676,6 +1691,9 @@ function init() {
     renderer = new THREE.WebGLRenderer({ canvas: canvasElement, antialias: true });
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Every shadow caster is static; render the shadow map once per scene
+    // build instead of on every animated frame.
+    renderer.shadowMap.autoUpdate = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
     camera = new THREE.PerspectiveCamera(45, 2, 0.1, 300);
