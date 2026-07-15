@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "run": {
-    "id": "20260714T204745Z-seed42",
+    "id": "20260715T203558Z-seed42",
     "status": "complete",
-    "started_at_utc": "2026-07-14T20:47:30.704562+00:00",
-    "completed_at_utc": "2026-07-14T20:47:45.082911+00:00",
+    "started_at_utc": "2026-07-15T20:35:46.868447+00:00",
+    "completed_at_utc": "2026-07-15T20:35:58.776557+00:00",
     "command": [
       "python.exe",
       "smart_grid_detector.py",
@@ -64,7 +64,7 @@
         "physics_penalty": 0.07236870731178083,
         "total_loss": 2.1097373949854,
         "physics_alpha": 0.01,
-        "latency_ms": 751.9400999881327
+        "latency_ms": 550.6158999996842
       },
       {
         "epoch": 2,
@@ -72,7 +72,7 @@
         "physics_penalty": 0.09172265082597733,
         "total_loss": 0.8673279109754061,
         "physics_alpha": 0.01,
-        "latency_ms": 582.4588000541553
+        "latency_ms": 549.8537000021315
       },
       {
         "epoch": 3,
@@ -80,7 +80,7 @@
         "physics_penalty": 0.09836903010544024,
         "total_loss": 0.45909243759356044,
         "physics_alpha": 0.01,
-        "latency_ms": 580.7128999149427
+        "latency_ms": 507.6097999990452
       },
       {
         "epoch": 4,
@@ -88,7 +88,7 @@
         "physics_penalty": 0.0870585109842451,
         "total_loss": 0.2781782603577564,
         "physics_alpha": 0.01,
-        "latency_ms": 576.3718000380322
+        "latency_ms": 523.34449999762
       },
       {
         "epoch": 5,
@@ -96,7 +96,7 @@
         "physics_penalty": 0.08166508627565283,
         "total_loss": 0.18845587733544802,
         "physics_alpha": 0.01,
-        "latency_ms": 583.4241000702605
+        "latency_ms": 540.5484000002616
       },
       {
         "epoch": 6,
@@ -104,7 +104,7 @@
         "physics_penalty": 0.06878238288979781,
         "total_loss": 0.136920218091262,
         "physics_alpha": 0.01,
-        "latency_ms": 584.7547999583185
+        "latency_ms": 560.7724000001326
       },
       {
         "epoch": 7,
@@ -112,7 +112,7 @@
         "physics_penalty": 0.05400417529438671,
         "total_loss": 0.10207363398451554,
         "physics_alpha": 0.01,
-        "latency_ms": 539.8952999385074
+        "latency_ms": 541.0731000010855
       },
       {
         "epoch": 8,
@@ -120,7 +120,7 @@
         "physics_penalty": 0.039478719273680137,
         "total_loss": 0.07799727085389589,
         "physics_alpha": 0.01,
-        "latency_ms": 544.962799991481
+        "latency_ms": 520.8836000019801
       },
       {
         "epoch": 9,
@@ -128,7 +128,7 @@
         "physics_penalty": 0.027208705364089262,
         "total_loss": 0.060838078589815846,
         "physics_alpha": 0.01,
-        "latency_ms": 569.9778000125661
+        "latency_ms": 530.3264999965904
       },
       {
         "epoch": 10,
@@ -136,7 +136,7 @@
         "physics_penalty": 0.019071425928881294,
         "total_loss": 0.04817015391431357,
         "physics_alpha": 0.01,
-        "latency_ms": 551.1518999701366
+        "latency_ms": 529.2109000001801
       },
       {
         "epoch": 11,
@@ -144,7 +144,7 @@
         "physics_penalty": 0.012067267759458015,
         "total_loss": 0.03921736698401602,
         "physics_alpha": 0.01,
-        "latency_ms": 555.7535999687389
+        "latency_ms": 637.0758999983082
       },
       {
         "epoch": 12,
@@ -152,7 +152,7 @@
         "physics_penalty": 0.007670477464010841,
         "total_loss": 0.03263704735589655,
         "physics_alpha": 0.01,
-        "latency_ms": 531.724700005725
+        "latency_ms": 590.9758999987389
       },
       {
         "epoch": 13,
@@ -160,7 +160,7 @@
         "physics_penalty": 0.004205739302070517,
         "total_loss": 0.02775008331396078,
         "physics_alpha": 0.01,
-        "latency_ms": 684.960599988699
+        "latency_ms": 554.8844000004465
       },
       {
         "epoch": 14,
@@ -168,7 +168,7 @@
         "physics_penalty": 0.002165617560967803,
         "total_loss": 0.023881328498062335,
         "physics_alpha": 0.01,
-        "latency_ms": 751.3723000884056
+        "latency_ms": 546.7121999972733
       },
       {
         "epoch": 15,
@@ -176,7 +176,7 @@
         "physics_penalty": 0.0013284328209824468,
         "total_loss": 0.020704509455122446,
         "physics_alpha": 0.01,
-        "latency_ms": 786.7410000180826
+        "latency_ms": 602.196300002106
       }
     ],
     "calibration": {
@@ -204,8 +204,8 @@
       "false_positives": 0,
       "false_negatives": 0,
       "alerts": 20,
-      "inference_latency_ms": 174.6133000124246,
-      "throughput_waveforms_per_second": 2290.7762465490205
+      "inference_latency_ms": 80.8554000032018,
+      "throughput_waveforms_per_second": 4947.103099906258
     },
     "observations": [
       {
@@ -14462,7 +14462,7 @@
     ]
   },
   "provenance": {
-    "source_sha256": "41ec5cbf17f45ad497102a14f5fae50a296eec7385930074d55fb89efef2606c",
+    "source_sha256": "d1a536b9a1bb1f58ecf797a8b05fcbad5fd95c4cf48ce92c048cfc51c846416f",
     "python_version": "3.12.10",
     "torch_version": "2.12.1+cpu",
     "numpy_version": "2.5.0",
@@ -14470,7 +14470,7 @@
     "window_backend": "Tukey fallback",
     "deterministic_algorithms": true
   },
-  "timestamp_unix": 1784062065,
+  "timestamp_unix": 1784147758,
   "test_total": 400,
   "metrics": {
     "accuracy": 1.0,
@@ -14484,8 +14484,8 @@
     "false_positives": 0,
     "false_negatives": 0,
     "alerts": 20,
-    "inference_latency_ms": 174.6133000124246,
-    "throughput_waveforms_per_second": 2290.7762465490205
+    "inference_latency_ms": 80.8554000032018,
+    "throughput_waveforms_per_second": 4947.103099906258
   },
   "calibration": {
     "threshold_reconstruction_error": 0.021058209240436554
@@ -15488,33 +15488,33 @@
     "points": [
       {
         "batch_size": 1,
-        "latency_ms_median": 2.145149977877736,
-        "per_record_ms": 2.145149977877736,
-        "throughput_per_s": 466.1678718563684
+        "latency_ms_median": 1.7305000001215376,
+        "per_record_ms": 1.7305000001215376,
+        "throughput_per_s": 577.8676682633732
       },
       {
         "batch_size": 8,
-        "latency_ms_median": 4.411150061059743,
-        "per_record_ms": 0.5513937576324679,
-        "throughput_per_s": 1813.5860012157611
+        "latency_ms_median": 3.129050001007272,
+        "per_record_ms": 0.391131250125909,
+        "throughput_per_s": 2556.6865334285876
       },
       {
         "batch_size": 32,
-        "latency_ms_median": 6.006350042298436,
-        "per_record_ms": 0.18769843882182613,
-        "throughput_per_s": 5327.694818757955
+        "latency_ms_median": 4.852649999520509,
+        "per_record_ms": 0.1516453124850159,
+        "throughput_per_s": 6594.335054694224
       },
       {
         "batch_size": 128,
-        "latency_ms_median": 16.771750000771135,
-        "per_record_ms": 0.1310292968810245,
-        "throughput_per_s": 7631.880990004906
+        "latency_ms_median": 11.0269500000868,
+        "per_record_ms": 0.08614804687567812,
+        "throughput_per_s": 11607.924221928315
       },
       {
         "batch_size": 400,
-        "latency_ms_median": 36.37450002133846,
-        "per_record_ms": 0.09093625005334616,
-        "throughput_per_s": 10996.714725022943
+        "latency_ms_median": 29.30470000137575,
+        "per_record_ms": 0.07326175000343937,
+        "throughput_per_s": 13649.687592134416
       }
     ],
     "peak_throughput_batch_size": 400
@@ -15662,7 +15662,7 @@
     "timed_iterations": 100,
     "fp32": {
       "state_dict_bytes": 2274359,
-      "single_record_latency_ms_median": 2.47965008020401,
+      "single_record_latency_ms_median": 1.665399999183137,
       "recalibrated_threshold": 0.021058209240436554,
       "accuracy": 1.0,
       "precision": 1.0,
@@ -15675,7 +15675,7 @@
     },
     "int8": {
       "state_dict_bytes": 703019,
-      "single_record_latency_ms_median": 2.5190500309690833,
+      "single_record_latency_ms_median": 1.9256000014138408,
       "recalibrated_threshold": 0.021305471658706665,
       "accuracy": 1.0,
       "precision": 1.0,
@@ -15688,7 +15688,7 @@
     },
     "int8_unavailable_reason": null,
     "size_reduction_ratio": 3.23513162517656,
-    "latency_speedup": 0.9843592027626716
+    "latency_speedup": 0.8648732851892106
   },
   "drift_monitor": {
     "window": 64,
@@ -15729,7 +15729,7 @@
   },
   "fdi_resilience": {
     "calibration": {
-      "min_noise_fraction": 2.4558564291510263e-06,
+      "min_noise_fraction": 3.570871058400371e-06,
       "max_phase_sum_rms": 0.0313275083899498,
       "max_rms_imbalance": 0.024684134870767593,
       "max_phase_scale_asymmetry": 0.05662808567285538,
