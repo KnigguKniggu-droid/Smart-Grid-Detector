@@ -23,7 +23,7 @@
   --ink: oklch(0.95 0.008 220);
   --ink-strong: oklch(1 0 0);
   --muted: oklch(0.68 0.02 220);
-  --muted-dim: oklch(0.52 0.018 220);
+  --muted-dim: oklch(0.68 0.02 220);
 
   /* Accent palette */
   --cyan: oklch(0.82 0.14 195);
@@ -106,7 +106,7 @@ select:focus-visible,
 input:focus-visible,
 a:focus-visible,
 [tabindex="0"]:focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
 }
@@ -878,7 +878,8 @@ th {
   box-shadow: var(--shadow);
 }
 
-#roc-canvas {
+#roc-canvas,
+.threshold-canvas {
   display: block;
   width: 100%; height: auto;
   max-width: 520px;
@@ -1054,6 +1055,41 @@ video {
 .adversarial-stat strong.is-green { color: var(--green); }
 .adversarial-stat strong.is-cyan { color: var(--cyan); }
 .adversarial-stat strong.is-amber { color: var(--amber); }
+
+.resilience-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+.resilience-stat {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: oklch(0.14 0.018 250 / 0.5);
+  text-align: center;
+}
+.resilience-stat span {
+  display: block;
+  color: var(--muted-dim);
+  font-family: "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.resilience-stat strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.resilience-stat strong.is-green { color: var(--green); }
+.resilience-stat strong.is-cyan { color: var(--cyan); }
+.resilience-stat strong.is-amber { color: var(--amber); }
+.resilience-stat strong.is-warn { color: var(--amber); }
+.resilience-stat strong.is-alarm { color: var(--red); }
 
 .adversarial-grid {
   display: grid;

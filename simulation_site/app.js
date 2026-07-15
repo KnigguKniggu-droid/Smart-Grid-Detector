@@ -58,6 +58,8 @@ const state = {
   dispatchRunId: null,
   dispatchResultsSha256: null,
   dispatchRequestId: 0,
+  dispatchValidators: { etag: null, lastModified: null },
+  dispatchError: null,
   resultsSha256: null,
   activeRunUrl: "simulation_results.json",
   comparisonData: null,
@@ -210,7 +212,8 @@ async function loadResults({ announce = true, url } = {}) {
       state.validators.lastModified = response.headers.get("last-modified");
     }
 
-    const changedRun = data.run.id !== state.data?.run?.id;
+    const changedRun =
+      data.run.id !== state.data?.run?.id || resultsSha256 !== state.resultsSha256;
     state.pollDelay = nextPollDelay(
       state.pollDelay, changedRun, POLL_BASE_MS, POLL_MAX_MS, POLL_BACKOFF,
     );
@@ -379,6 +382,82 @@ function renderRobustnessPanel(multiSeed) {
       ],
     ),
   );
+  if (Array.isArray(multiSeed.per_seed) && multiSeed.per_seed.length) {
+    panel.appendChild(el("h4", "Per-seed results", "resilience-subhead"));
+    panel.appendChild(
+      buildTable(
+        ["Seed", "Accuracy", "Recall", "F1", "FP", "FN"],
+        multiSeed.per_seed.map((run) => [
+          run.seed,
+          pct(run.accuracy),
+          pct(run.recall),
+          pct(run.f1_score),
+          run.false_positives,
+          run.false_negatives,
+        ]),
+      ),
+    );
+  }
+}
+
+function renderThresholdChart(sweep, panel) {
+  const canvas = document.createElement("canvas");
+  canvas.className = "threshold-canvas";
+  canvas.width = 520;
+  canvas.height = 260;
+  canvas.setAttribute("role", "img");
+  const description = sweep.points
+    .map((point) => `sigma ${point.sigma}: ${pct(point.accuracy)}`)
+    .join("; ");
+  canvas.setAttribute("aria-label", `Accuracy by threshold sigma. ${description}.`);
+  panel.appendChild(canvas);
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const margin = { left: 52, right: 18, top: 18, bottom: 42 };
+  const plotW = canvas.width - margin.left - margin.right;
+  const plotH = canvas.height - margin.top - margin.bottom;
+  const sigmas = sweep.points.map((point) => point.sigma);
+  const minSigma = Math.min(...sigmas);
+  const maxSigma = Math.max(...sigmas);
+  const xFor = (sigma) => margin.left +
+    ((sigma - minSigma) / Math.max(maxSigma - minSigma, 1)) * plotW;
+  const yFor = (accuracy) => margin.top + (1 - accuracy) * plotH;
+
+  ctx.fillStyle = "#081014";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (sweep.zero_error_band) {
+    ctx.fillStyle = "rgba(54, 214, 199, 0.12)";
+    const low = xFor(sweep.zero_error_band.low);
+    const high = xFor(sweep.zero_error_band.high);
+    ctx.fillRect(low, margin.top, Math.max(2, high - low), plotH);
+  }
+  ctx.strokeStyle = "#23363a";
+  ctx.fillStyle = "#b8cbc7";
+  ctx.font = "12px ui-monospace, monospace";
+  for (let i = 0; i <= 4; i += 1) {
+    const accuracy = i / 4;
+    const y = yFor(accuracy);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, y);
+    ctx.lineTo(margin.left + plotW, y);
+    ctx.stroke();
+    ctx.fillText(accuracy.toFixed(2), 12, y + 4);
+  }
+  ctx.strokeStyle = "#36d6c7";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  sweep.points.forEach((point, index) => {
+    const x = xFor(point.sigma);
+    const y = yFor(point.accuracy);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.fillStyle = "#b8cbc7";
+  ctx.fillText(String(minSigma), margin.left - 6, canvas.height - 16);
+  ctx.fillText(String(maxSigma), margin.left + plotW - 12, canvas.height - 16);
+  ctx.fillText("Threshold sigma", margin.left + plotW / 2 - 48, canvas.height - 8);
 }
 
 function renderThresholdPanel(sweep) {
@@ -396,6 +475,7 @@ function renderThresholdPanel(sweep) {
           `${sweep.configured_sigma} sits inside a stable plateau.`
       : "No sigma achieved zero errors on this run.",
   );
+  renderThresholdChart(sweep, panel);
   const rows = sweep.points.map((point) => {
     const clean = point.false_positives === 0 && point.false_negatives === 0;
     return [
@@ -668,6 +748,14 @@ function renderDispatchPanel() {
   const panel = byId("dispatch-panel");
   const artifact = state.dispatches;
   if (!artifact || !Array.isArray(artifact.operational_dispatches)) {
+    if (state.dispatchError) {
+      panelShell(
+        panel,
+        "Self-healing dispatch unavailable",
+        `The dispatch artifact could not be verified: ${state.dispatchError}`,
+      );
+      return;
+    }
     panel.hidden = true;
     return;
   }
@@ -681,6 +769,21 @@ function renderDispatchPanel() {
   );
   const priorityClass = (priority) =>
     priority === "CRITICAL" ? "is-alarm" : priority === "HIGH" ? "is-warn" : "";
+  if (artifact.detected_assets.length) {
+    panel.appendChild(el("h4", "Detected assets", "resilience-subhead"));
+    panel.appendChild(
+      buildTable(
+        ["Asset", "Section", "Confidence", "Anomaly"],
+        artifact.detected_assets.slice(0, 24).map((asset) => [
+          asset.asset_id,
+          asset.section,
+          pct(asset.confidence_score, 1),
+          asset.detected_anomalies.join(", ").replace(/_/g, " "),
+        ]),
+      ),
+    );
+  }
+  panel.appendChild(el("h4", "Operational work orders", "resilience-subhead"));
   panel.appendChild(
     buildTable(
       ["Dispatch", "Node", "Priority", "Action"],
@@ -707,11 +810,20 @@ async function loadDispatches(runId, resultsSha256) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
+    const headers = {};
+    if (state.dispatchValidators.etag) {
+      headers["If-None-Match"] = state.dispatchValidators.etag;
+    }
+    if (state.dispatchValidators.lastModified) {
+      headers["If-Modified-Since"] = state.dispatchValidators.lastModified;
+    }
     const response = await fetch(DISPATCHES_URL, {
       cache: "no-store",
       credentials: "same-origin",
+      headers,
       signal: controller.signal,
     });
+    if (response.status === 304 && state.dispatches) return;
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await readBodyWithCap(response, MAX_RESULTS_BYTES);
     const artifact = assertDispatchShape(
@@ -722,11 +834,15 @@ async function loadDispatches(runId, resultsSha256) {
       state.data?.run?.id !== runId || state.resultsSha256 !== resultsSha256
     ) return;
     state.dispatches = artifact;
+    state.dispatchError = null;
     state.dispatchRunId = runId;
     state.dispatchResultsSha256 = resultsSha256;
+    state.dispatchValidators.etag = response.headers.get("etag");
+    state.dispatchValidators.lastModified = response.headers.get("last-modified");
   } catch (error) {
     if (requestId === state.dispatchRequestId) {
       state.dispatches = null; // Panel simply stays hidden if unavailable.
+      state.dispatchError = error instanceof Error ? error.message : "unknown error";
       state.dispatchRunId = null;
       state.dispatchResultsSha256 = null;
     }
@@ -740,7 +856,60 @@ async function loadDispatches(runId, resultsSha256) {
       "roc-panel",
       "resilience-panel",
       "dispatch-panel",
+      "grid-response-panel",
     ].some((id) => !byId(id).hidden);
+  }
+}
+
+function renderGridResponsePanel(gridResponse) {
+  const panel = byId("grid-response-panel");
+  if (!gridResponse) {
+    panel.hidden = true;
+    return;
+  }
+  panelShell(
+    panel,
+    "Grid response summary",
+    `Simulated self-healing across ${gridResponse.sections} feeder sections. ` +
+      "Not a live control system.",
+  );
+  const stats = [
+    { label: "Alerts dispatched", value: gridResponse.alerts_dispatched, cls: "is-cyan" },
+    { label: "Sections isolated", value: gridResponse.sections_isolated.length, cls: "is-amber" },
+    { label: "Customers affected", value: gridResponse.customers_in_isolated_sections, cls: "is-warn" },
+    { label: "Restored via reroute", value: gridResponse.customers_restored_via_reroute, cls: "is-green" },
+    { label: "Isolation time", value: `${gridResponse.simulated_isolation_seconds}s`, cls: "" },
+    { label: "Reroute time", value: `${gridResponse.simulated_reroute_seconds}s`, cls: "" },
+  ];
+  const row = el("div", null, "resilience-stat-row");
+  for (const stat of stats) {
+    const card = el("div", null, "resilience-stat");
+    card.appendChild(el("span", stat.label));
+    card.appendChild(el("strong", String(stat.value), stat.cls));
+    row.appendChild(card);
+  }
+  panel.appendChild(row);
+  const priorities = gridResponse.priorities || {};
+  const prioEntries = Object.entries(priorities);
+  if (prioEntries.length) {
+    panel.appendChild(el("h4", "Priority breakdown", "resilience-subhead"));
+    const priorityClass = (p) =>
+      p === "CRITICAL" ? "is-alarm" : p === "HIGH" ? "is-warn" : "";
+    panel.appendChild(
+      buildTable(
+        ["Priority", "Count"],
+        prioEntries.map(([k, v]) => [
+          { text: k, className: priorityClass(k) },
+          String(v),
+        ]),
+      ),
+    );
+  }
+  if (gridResponse.sections_isolated && gridResponse.sections_isolated.length) {
+    panel.appendChild(el("h4", "Isolated sections", "resilience-subhead"));
+    panel.appendChild(
+      el("p", gridResponse.sections_isolated.join(", "), "resilience-card-note"),
+    );
   }
 }
 
@@ -753,6 +922,7 @@ function renderResilience(data) {
     state.resultsSha256,
   )) {
     state.dispatches = null;
+    state.dispatchError = null;
     state.dispatchRunId = null;
     state.dispatchResultsSha256 = null;
   }
@@ -761,12 +931,14 @@ function renderResilience(data) {
   renderRocPanel(data.roc_analysis);
   renderResiliencePanel(data);
   renderDispatchPanel();
+  renderGridResponsePanel(data.grid_response);
   const anyVisible = [
     "robustness-panel",
     "threshold-panel",
     "roc-panel",
     "resilience-panel",
     "dispatch-panel",
+    "grid-response-panel",
   ].some((id) => !byId(id).hidden);
   section.hidden = !anyVisible;
   loadDispatches(data.run.id, state.resultsSha256);
