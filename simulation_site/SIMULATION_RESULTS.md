@@ -1,7 +1,7 @@
 # Smart Grid Detector — Simulation & Experimentation Report
 
-Run ID: `20260715T203558Z-seed42`  
-Completed: `2026-07-15T20:35:58.776557+00:00`  
+Run ID: `20260715T213651Z-seed42`  
+Completed: `2026-07-15T21:36:51.283451+00:00`  
 Source SHA-256: `d1a536b9a1bb1f58ecf797a8b05fcbad5fd95c4cf48ce92c048cfc51c846416f`
 
 ## Executive result
@@ -22,8 +22,8 @@ are not evidence of field performance on utility telemetry.
 | Specificity | 100.00% |
 | TP / TN / FP / FN | 20 / 380 / 0 / 0 |
 | Alerts | 20 / 400 |
-| Batched validation latency | 80.86 ms |
-| Throughput | 4947.1 waveforms/s |
+| Batched validation latency | 73.70 ms |
+| Throughput | 5427.3 waveforms/s |
 
 ## Configuration and environment
 
@@ -73,21 +73,21 @@ sequence RMS)`, with `alpha = 0.01`.
 
 | Epoch | MSE | Physics penalty | Total loss | Duration (ms) |
 |---:|---:|---:|---:|---:|
-| 1 | 2.10901372 | 0.07236871 | 2.10973739 | 550.62 |
-| 2 | 0.86641069 | 0.09172265 | 0.86732791 | 549.85 |
-| 3 | 0.45810875 | 0.09836903 | 0.45909244 | 507.61 |
-| 4 | 0.27730767 | 0.08705851 | 0.27817826 | 523.34 |
-| 5 | 0.18763923 | 0.08166509 | 0.18845588 | 540.55 |
-| 6 | 0.13623239 | 0.06878238 | 0.13692022 | 560.77 |
-| 7 | 0.10153359 | 0.05400418 | 0.10207363 | 541.07 |
-| 8 | 0.07760248 | 0.03947872 | 0.07799727 | 520.88 |
-| 9 | 0.06056599 | 0.02720871 | 0.06083808 | 530.33 |
-| 10 | 0.04797944 | 0.01907143 | 0.04817015 | 529.21 |
-| 11 | 0.03909669 | 0.01206727 | 0.03921737 | 637.08 |
-| 12 | 0.03256034 | 0.00767048 | 0.03263705 | 590.98 |
-| 13 | 0.02770803 | 0.00420574 | 0.02775008 | 554.88 |
-| 14 | 0.02385967 | 0.00216562 | 0.02388133 | 546.71 |
-| 15 | 0.02069123 | 0.00132843 | 0.02070451 | 602.20 |
+| 1 | 2.10901372 | 0.07236871 | 2.10973739 | 478.07 |
+| 2 | 0.86641069 | 0.09172265 | 0.86732791 | 640.13 |
+| 3 | 0.45810875 | 0.09836903 | 0.45909244 | 586.62 |
+| 4 | 0.27730767 | 0.08705851 | 0.27817826 | 547.33 |
+| 5 | 0.18763923 | 0.08166509 | 0.18845588 | 524.98 |
+| 6 | 0.13623239 | 0.06878238 | 0.13692022 | 489.36 |
+| 7 | 0.10153359 | 0.05400418 | 0.10207363 | 541.82 |
+| 8 | 0.07760248 | 0.03947872 | 0.07799727 | 507.11 |
+| 9 | 0.06056599 | 0.02720871 | 0.06083808 | 518.13 |
+| 10 | 0.04797944 | 0.01907143 | 0.04817015 | 506.50 |
+| 11 | 0.03909669 | 0.01206727 | 0.03921737 | 522.52 |
+| 12 | 0.03256034 | 0.00767048 | 0.03263705 | 522.31 |
+| 13 | 0.02770803 | 0.00420574 | 0.02775008 | 515.07 |
+| 14 | 0.02385967 | 0.00216562 | 0.02388133 | 501.82 |
+| 15 | 0.02069123 | 0.00132843 | 0.02070451 | 516.67 |
 
 ## Alert evidence
 
@@ -113,6 +113,33 @@ sequence RMS)`, with `alpha = 0.01`.
 | 337 | sag | 0.06071218 | 12.05% | reconstruction_error, thd |
 | 356 | sag | 0.03933037 | 6.33% | reconstruction_error, thd |
 | 392 | harmonic | 0.02652556 | 10.89% | reconstruction_error, thd |
+
+## Multi-seed robustness
+
+The complete pipeline (generation, training, calibration, validation) was
+rerun independently for 5 seeds
+(42 through 46). Intervals are
+two-sided 95% confidence intervals (Student t through 30 degrees of freedom, normal beyond).
+
+| Metric | Mean ± 95% CI | Min | Max |
+|---|---:|---:|---:|
+| Accuracy | 100.00% ± 0.00% | 100.00% | 100.00% |
+| Precision | 100.00% ± 0.00% | 100.00% | 100.00% |
+| Recall | 100.00% ± 0.00% | 100.00% | 100.00% |
+| F1 score | 100.00% ± 0.00% | 100.00% | 100.00% |
+
+| Seed | Accuracy | Precision | Recall | F1 | FP | FN |
+|---:|---:|---:|---:|---:|---:|---:|
+| 42 | 100.00% | 100.00% | 100.00% | 100.00% | 0 | 0 |
+| 43 | 100.00% | 100.00% | 100.00% | 100.00% | 0 | 0 |
+| 44 | 100.00% | 100.00% | 100.00% | 100.00% | 0 | 0 |
+| 45 | 100.00% | 100.00% | 100.00% | 100.00% | 0 | 0 |
+| 46 | 100.00% | 100.00% | 100.00% | 100.00% | 0 | 0 |
+
+The calibrated reconstruction threshold ranged from
+`0.00941471` to `0.02105821`,
+which is why each run calibrates its own threshold instead of reusing a fixed
+number.
 
 ## Threshold sensitivity
 
@@ -182,7 +209,7 @@ included in this microbenchmark.
 | Variant | State dict | Median single-record latency | Accuracy | Precision | Recall |
 |---|---:|---:|---:|---:|---:|
 | FP32 | 2,274,359 B | 1.67 ms | 100.00% | 100.00% | 100.00% |
-| Dynamic int8 | 703,019 B | 1.93 ms | 100.00% | 100.00% | 100.00% |
+| Dynamic int8 | 703,019 B | 1.95 ms | 100.00% | 100.00% | 100.00% |
 
 Quantization shrinks the state dict by
 3.24x. Each variant recalibrates its
@@ -196,15 +223,15 @@ Inference latency and throughput across batch sizes on
 `cpu` (median of 30
 timed iterations). Small batches minimize per-alert latency; large batches
 maximize throughput. Peak throughput was at batch size
-400.
+128.
 
 | Batch size | Batch latency (ms) | Per-record (ms) | Throughput (per s) |
 |---:|---:|---:|---:|
-| 1 | 1.73 | 1.731 | 578 |
-| 8 | 3.13 | 0.391 | 2,557 |
-| 32 | 4.85 | 0.152 | 6,594 |
-| 128 | 11.03 | 0.086 | 11,608 |
-| 400 | 29.30 | 0.073 | 13,650 |
+| 1 | 1.72 | 1.721 | 581 |
+| 8 | 3.23 | 0.404 | 2,476 |
+| 32 | 4.89 | 0.153 | 6,548 |
+| 128 | 10.35 | 0.081 | 12,371 |
+| 400 | 32.70 | 0.082 | 12,234 |
 
 ## Drift monitoring
 
@@ -278,4 +305,4 @@ python smart_grid_detector.py --serve-dashboard-only
 - Synthetic 60 Hz waveforms do not reproduce every sensor, topology, switching,
   load, weather, communications, or adversarial condition seen in a real grid.
 - The perfect seeded score must not be generalized beyond this dataset.
-- Recommended next work: multi-seed confidence intervals, held-out field captures, validation on real utility telemetry, and hardware-in-the-loop benchmarking on target edge devices.
+- Recommended next work: held-out field captures, validation on real utility telemetry, and hardware-in-the-loop benchmarking on target edge devices.
