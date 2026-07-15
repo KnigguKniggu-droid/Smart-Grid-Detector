@@ -27,7 +27,7 @@ smart-grid-detector/
 │   ├── dsp-engine.js               # Clarke Transform, FFT, phase portrait (NEW)
 │   ├── autoencoder-sim.js          # Client-side autoencoder simulation (NEW)
 │   ├── hardware-export.js          # C++ code generation for embedded (NEW)
-│   ├── topology3d.js               # Three.js 3D grid topology
+│   ├── topology3d.js               # Three.js 3D grid topology + digital twin
 │   ├── topology-loader.js
 │   ├── simulation_results.json     # Recorded run data
 │   ├── simulation_results_alt.json # Comparison run (seed 137)
@@ -147,6 +147,15 @@ smart-grid-detector/
 - DSP metrics panel: phase imbalance, zero-sequence, harmonic ratio, dominant harmonic, decision gate badge
 - Hardware deployment panel: platform selector, code generation, download, copy to clipboard
 - All wired into the animation loop at 60fps
+
+### 9. 3D Feeder Map Digital Twin Upgrade (NEW)
+- **Live telemetry binding**: `topology3d.js` reads `window.GridReplay.liveState` from app.js; when fault injection is active, the affected feeder section's conductor meshes swap to a red emissive `faultConductorMaterial`, the section beacon pulses larger and red, and the label shows fault type and severity
+- **Edge-AI tower MSE visualization**: `THREE.PointLight` added at the tower position; color lerps from cyan (MSE=0) to red (MSE=threshold), intensity scales 0.3 to 3.0 with error magnitude, plus a sine pulse; hologram layers shift from cyan to amber above 50% MSE
+- **Bidirectional raycasting**: `THREE.Raycaster` fires on canvas click against tagged conductor meshes and beacons (each tagged with `userData.sectionIndex`); dispatches `CustomEvent('grid-sentinel:section-click')` which app.js listens for to auto-select the matching record, enable fault injection, and scroll the topology panel into view
+- **computeFaultedRecord()**: Self-contained fault application helper in topology3d.js that mirrors app.js's `applyFault()` for MSE recomputation without circular dependencies
+- **currentEvidence() refactored**: Accepts optional `faultOverride` parameter to compute evidence from faulted data
+- **Performance**: Material swap is O(1) reference assignment; raycasting only on click (~80 objects); PointLight update is three scalar writes; existing `needsRender` gating preserved; no allocations in hot path during recorded-only replay
+- **Cross-module pattern**: Window globals for passive state reads, CustomEvents for active mutations
 
 ## Key things to know
 
