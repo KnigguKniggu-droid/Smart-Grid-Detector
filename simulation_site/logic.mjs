@@ -198,6 +198,134 @@ export function dispatchCacheMatches(
   );
 }
 
+// --- IEEE 1366 reliability index classification ---
+
+export function classifySaifi(saifi) {
+  if (!Number.isFinite(saifi) || saifi < 0) return "invalid";
+  if (saifi < 0.001) return "nominal";
+  if (saifi < 0.005) return "warning";
+  return "alarm";
+}
+
+export function classifySaidi(saidi) {
+  if (!Number.isFinite(saidi) || saidi < 0) return "invalid";
+  if (saidi < 0.01) return "nominal";
+  if (saidi < 0.05) return "warning";
+  return "alarm";
+}
+
+export function formatReliabilityRow(key, ri) {
+  const units = {
+    SAIFI: "interruptions/customer",
+    SAIDI: "customer-minutes/customer",
+    CAIDI: "minutes/interruption",
+  };
+  const labels = {
+    SAIFI: "SAIFI",
+    SAIDI: "SAIDI",
+    CAIDI: "CAIDI",
+    total_customer_interruptions: "Total interruptions",
+    customer_minutes_interrupted: "Customer-minutes interrupted",
+  };
+  if (key === "total_customer_interruptions" || key === "customer_minutes_interrupted") {
+    return { metric: labels[key], value: String(ri[key]), unit: key === "total_customer_interruptions" ? "events" : "min" };
+  }
+  const value = Number.isFinite(ri[key]) ? ri[key].toFixed(key === "CAIDI" ? 2 : 6) : "n/a";
+  return { metric: labels[key], value, unit: units[key] || "" };
+}
+
+// --- MPPT efficiency classification ---
+
+export function classifyMpptEfficiency(efficiency) {
+  if (!Number.isFinite(efficiency) || efficiency < 0 || efficiency > 1) return "invalid";
+  if (efficiency >= 0.97) return "optimal";
+  if (efficiency >= 0.90) return "degraded";
+  return "critical";
+}
+
+export function classifyMismatch(mismatchKw, threshold = 0.5) {
+  if (!Number.isFinite(mismatchKw) || mismatchKw < 0) return "invalid";
+  if (mismatchKw > threshold) return "alarm";
+  if (mismatchKw > threshold * 0.5) return "warning";
+  return "nominal";
+}
+
+export function mpptSectionStatus(section) {
+  if (!section || typeof section !== "object") return "invalid";
+  if (section.status === "optimal") return "is-ok";
+  if (section.status === "degraded") return "is-warn";
+  return "";
+}
+
+// --- DQ current ripple and PLL synchronization ---
+
+export function classifyRipple(ripple, threshold = 0.05) {
+  if (!Number.isFinite(ripple) || ripple < 0) return "invalid";
+  if (ripple > threshold) return "alarm";
+  return "nominal";
+}
+
+export function classifyPllError(errorDeg, threshold = 5.0) {
+  if (!Number.isFinite(errorDeg) || errorDeg < 0) return "invalid";
+  if (errorDeg > threshold) return "alarm";
+  return "nominal";
+}
+
+export function pllLockStatus(section) {
+  if (!section || typeof section !== "object") return "invalid";
+  if (section.pll_locked) return { text: "locked", className: "is-ok" };
+  return { text: "UNLOCKED", className: "is-alarm" };
+}
+
+// --- Reliability index extraction from grid_response ---
+
+export function extractReliabilityIndices(gridResponse) {
+  if (!gridResponse || !gridResponse.reliability_indices) return null;
+  const ri = gridResponse.reliability_indices;
+  if (!Number.isFinite(ri.SAIFI) || !Number.isFinite(ri.SAIDI)) return null;
+  return {
+    SAIFI: ri.SAIFI,
+    SAIDI: ri.SAIDI,
+    CAIDI: Number.isFinite(ri.CAIDI) ? ri.CAIDI : 0,
+    total_customers_served: ri.total_customers_served || 0,
+    total_customer_interruptions: ri.total_customer_interruptions || 0,
+    customer_minutes_interrupted: ri.customer_minutes_interrupted || 0,
+    saifiStatus: classifySaifi(ri.SAIFI),
+    saidiStatus: classifySaidi(ri.SAIDI),
+  };
+}
+
+export function extractMpptMetrics(artifact) {
+  if (!artifact || !artifact.mppt_metrics) return null;
+  const m = artifact.mppt_metrics;
+  if (!Array.isArray(m.sections)) return null;
+  return {
+    aggregate_mppt_efficiency: m.aggregate_mppt_efficiency || 0,
+    total_generation_kw: m.total_generation_kw || 0,
+    total_mismatch_kw: m.total_mismatch_kw || 0,
+    faulted_sections: m.faulted_sections || [],
+    sections: m.sections,
+    efficiencyStatus: classifyMpptEfficiency(m.aggregate_mppt_efficiency),
+    mismatchStatus: classifyMismatch(m.total_mismatch_kw),
+  };
+}
+
+export function extractDqPllMetrics(gridResponse) {
+  if (!gridResponse || !gridResponse.dq_pll_metrics) return null;
+  const d = gridResponse.dq_pll_metrics;
+  if (!Array.isArray(d.sections)) return null;
+  return {
+    aggregate_ripple_a: d.aggregate_ripple_a || 0,
+    aggregate_pll_error_deg: d.aggregate_pll_error_deg || 0,
+    unlocked_sections: d.unlocked_sections || [],
+    ripple_threshold_a: d.ripple_threshold_a || 0.05,
+    pll_lock_threshold_deg: d.pll_lock_threshold_deg || 5.0,
+    sections: d.sections,
+    rippleStatus: classifyRipple(d.aggregate_ripple_a, d.ripple_threshold_a),
+    pllStatus: classifyPllError(d.aggregate_pll_error_deg, d.pll_lock_threshold_deg),
+  };
+}
+
 const api = {
   SECTIONS,
   createSimClock,
@@ -207,5 +335,17 @@ const api = {
   assertResultsShape,
   assertDispatchShape,
   dispatchCacheMatches,
+  classifySaifi,
+  classifySaidi,
+  formatReliabilityRow,
+  classifyMpptEfficiency,
+  classifyMismatch,
+  mpptSectionStatus,
+  classifyRipple,
+  classifyPllError,
+  pllLockStatus,
+  extractReliabilityIndices,
+  extractMpptMetrics,
+  extractDqPllMetrics,
 };
 export default api;
