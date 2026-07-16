@@ -50,6 +50,7 @@ let isVisible = true;
 let needsRender = true;
 let frameQueued = false;
 let lastA11yKey = "";
+let responsiveRadius = null;
 
 // --- Live telemetry binding ---
 let faultSection = -1;
@@ -1661,7 +1662,8 @@ function updateHud(evidence) {
     if (live) {
       live.textContent =
         `Section ${String(evidence.section).padStart(2, "0")} ${alarm}, ` +
-        `test record ${evidence.record.sample_index}.`;
+        `test record ${evidence.record.sample_index}, reconstruction evidence ` +
+        `${evidence.reconPercent.toFixed(0)}% of threshold, THD ${thdText}.`;
     }
   }
 }
@@ -1836,7 +1838,16 @@ function resize() {
   // Narrow / portrait viewports: pull the camera back and grow labels so the
   // whole substation frames and the text stays legible on a phone.
   const aspect = width / height;
-  orbit.radius = aspect < 0.8 ? 46 : aspect < 1.2 ? 40 : 34;
+  const nextResponsiveRadius = aspect < 0.8 ? 46 : aspect < 1.2 ? 40 : 34;
+  if (responsiveRadius === null) {
+    orbit.radius = nextResponsiveRadius;
+  } else {
+    orbit.radius = Math.max(
+      14,
+      Math.min(60, orbit.radius * (nextResponsiveRadius / responsiveRadius)),
+    );
+  }
+  responsiveRadius = nextResponsiveRadius;
   const labelScale = aspect < 0.8 ? 1.7 : aspect < 1.2 ? 1.3 : 1;
   for (const sprite of labelSprites) {
     const [baseW, baseH] = sprite.userData.baseScale;
@@ -1924,6 +1935,8 @@ function onCanvasClick(event) {
 }
 
 function showFallback(message) {
+  const data = window.GridReplay?.state.data;
+  if (!statsBySection.length && data) update(data);
   const hud = document.getElementById("topology-hud");
   if (hud) hud.textContent = message;
   if (canvasElement) canvasElement.style.display = "none";
@@ -2000,8 +2013,14 @@ function init() {
     reducedMotion.addEventListener?.("change", requestRender);
     canvasElement.addEventListener("webglcontextlost", (event) => {
       event.preventDefault();
+      showFallback(
+        "The 3D context was lost. Section alert data remains available below.",
+      );
     });
     canvasElement.addEventListener("webglcontextrestored", () => {
+      canvasElement.style.display = "block";
+      const summaryEl = document.getElementById("topology-sections-summary");
+      if (summaryEl) summaryEl.className = "sr-only";
       buildStaticScene();
       if (window.GridReplay?.state.data) update(window.GridReplay.state.data);
       resize();

@@ -75,6 +75,7 @@ python -m py_compile smart_grid_detector.py tests\test_smart_grid_detector.py
 python -m unittest discover -s tests -p "test_*.py" -v
 node --check simulation_site\app.js
 node --check simulation_site\logic.mjs
+node --check simulation_site\topology-loader.js
 node --check simulation_site\topology3d.js
 node --test tests\test_frontend_logic.mjs
 ```

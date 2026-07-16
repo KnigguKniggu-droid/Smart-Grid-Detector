@@ -8,7 +8,6 @@ zero-sequence content during training.
 """
 
 from __future__ import annotations
-
 # ---------------------------------------------------------------------------
 # 1. IMPORTS & SETUP
 # ---------------------------------------------------------------------------
@@ -2301,6 +2300,118 @@ def run_latency_profile(
     }
 
 
+def run_scenario_stress_test(
+    model: GridWaveformAutoencoder,
+    config: DetectorConfig,
+    threshold: float,
+    device: torch.device,
+    num_scenarios: int = 50,
+    anomaly_fraction: float = ANOMALY_FRACTION,
+    seed: int = RANDOM_SEED,
+) -> dict[str, Any]:
+    """Monte Carlo scenario stress test: vary load profiles and record detection rates.
+
+    Inspired by Monte Carlo simulations on IEEE test feeders with randomized load
+    variations. Each scenario generates a fresh synthetic dataset with a different
+    random seed, runs the detector, and records per-scenario accuracy, false
+    positive rate, and detection recall. The aggregate statistics quantify how
+    robust the detector is to distributional shifts in the input data.
+    """
+
+    model.eval()
+    scenario_results: list[dict[str, Any]] = []
+    base_rng = random.Random(seed)
+
+    for scenario_idx in range(num_scenarios):
+        scenario_seed = base_rng.randint(0, 2**31 - 1)
+        set_deterministic_seed(scenario_seed)
+
+        # Generate a fresh dataset with this scenario's seed
+        bundle = generate_waveforms(config, anomaly_fraction=anomaly_fraction)
+
+        # Run inference
+        with torch.inference_mode():
+            test_batch = bundle.test_waveforms.to(device)
+            reconstructions = model(test_batch)
+            errors = torch.mean(
+                (test_batch - reconstructions) ** 2, dim=(1, 2)
+            )
+
+            # Compute THD per record
+            thd_values = []
+            for idx in range(test_batch.shape[0]):
+                phase_a = test_batch[idx, 0]
+                thd = compute_thd(phase_a.unsqueeze(0).unsqueeze(0))
+                thd_values.append(float(thd))
+            thd_tensor = torch.tensor(thd_values, device=device)
+
+        # Apply thresholds
+        error_flags = errors > threshold
+        thd_flags = thd_tensor > THD_LIMIT
+        predictions = error_flags | thd_flags
+        truth = bundle.test_labels.to(dtype=torch.bool)
+
+        tp = int(torch.sum(predictions & truth))
+        tn = int(torch.sum(~predictions & ~truth))
+        fp = int(torch.sum(predictions & ~truth))
+        fn = int(torch.sum(~predictions & truth))
+        total = tp + tn + fp + fn
+        accuracy = (tp + tn) / max(total, 1)
+        recall = tp / max(tp + fn, 1)
+        precision = tp / max(tp + fp, 1)
+        f1 = 2 * precision * recall / max(precision + recall, 1e-12)
+        fpr = fp / max(fp + tn, 1)
+
+        scenario_results.append({
+            "scenario": scenario_idx,
+            "seed": scenario_seed,
+            "accuracy": round(accuracy, 6),
+            "recall": round(recall, 6),
+            "precision": round(precision, 6),
+            "f1_score": round(f1, 6),
+            "false_positive_rate": round(fpr, 6),
+            "true_positives": tp,
+            "true_negatives": tn,
+            "false_positives": fp,
+            "false_negatives": fn,
+        })
+
+    # Aggregate statistics
+    accuracies = [s["accuracy"] for s in scenario_results]
+    recalls = [s["recall"] for s in scenario_results]
+    fprs = [s["false_positive_rate"] for s in scenario_results]
+
+    def _stats(values: list[float]) -> dict[str, float]:
+        mean = statistics.mean(values)
+        stdev = statistics.stdev(values) if len(values) > 1 else 0.0
+        return {
+            "mean": round(mean, 6),
+            "std": round(stdev, 6),
+            "min": round(min(values), 6),
+            "max": round(max(values), 6),
+        }
+
+    # Restore original seed for downstream code
+    set_deterministic_seed(seed)
+
+    print(
+        f"[SCENARIO] {num_scenarios} scenarios: "
+        f"accuracy={statistics.mean(accuracies):.4f} +/- {statistics.stdev(accuracies):.4f}, "
+        f"recall={statistics.mean(recalls):.4f}, "
+        f"fpr={statistics.mean(fprs):.4f}"
+    )
+
+    return {
+        "num_scenarios": num_scenarios,
+        "aggregate": {
+            "accuracy": _stats(accuracies),
+            "recall": _stats(recalls),
+            "false_positive_rate": _stats(fprs),
+        },
+        "per_scenario": scenario_results,
+    }
+
+
 class DriftMonitor:
     """Rolling z-test of recent reconstruction errors against calibration.
 
@@ -2561,14 +2672,17 @@ def calibrate_fdi_detector(
 
     Upper bounds are statistically calibrated (``mean + 6 std``) rather than
     ``max * 1.5`` so a subtle single-phase bias cannot sit in the outlier gap.
-    The noise floor is anchored to the median so a noiseless replay is
-    unambiguously below it. A joint bound on the fused score catches
+    The noise floor is anchored below the fifth percentile so genuine low-noise
+    records remain valid while a noiseless replay is unambiguously below it. A
+    joint bound on the fused score catches
     coordinated attacks that keep every individual check below its own bound.
     """
 
     features = _physics_consistency_features(train_normal_waveforms)
     calibration = {
-        "min_noise_fraction": float(features["noise_fraction"].median()) * 0.3,
+        "min_noise_fraction": float(
+            torch.quantile(features["noise_fraction"], 0.05)
+        ) * 0.5,
         "max_phase_sum_rms": _robust_upper_bound(features["phase_sum_rms"]),
         "max_rms_imbalance": _robust_upper_bound(features["rms_imbalance"]),
         # Genuine phase asymmetry is bounded uniform unbalance, so a 5-sigma
@@ -2767,6 +2881,290 @@ def run_fdi_scenario(
     }
 
 
+# ---------------------------------------------------------------------------
+# 6B. MULTI-LEVEL DISPATCH DECISION FRAMEWORK
+# (Adapted from Yuan et al. WSC 2015 "Agent Driving Behavior Modeling
+# for Traffic Simulation and Emergency Decision Support")
+# ---------------------------------------------------------------------------
+
+class GridStressIndicator:
+    """Grid stress indicator adapted from the paper's nervousness model.
+    
+    The paper uses a linear interpolation formula for psychological state:
+    N(s) = N(s-1) + (N_max - N(s-1)) * λ(s)
+    
+    For grid context, we adapt this to model stress levels that accumulate
+    during cascading failures and decay during normal operation.
+    """
+    
+    def __init__(self, max_stress: float = 1.0, accumulation_rate: float = 0.3, 
+                 decay_rate: float = 0.1):
+        self.max_stress = max_stress
+        self.accumulation_rate = accumulation_rate
+        self.decay_rate = decay_rate
+        self.current_stress = 0.0
+        self.stress_history = []
+        
+    def update(self, event_type: str, severity: float = 1.0) -> float:
+        """Update stress based on event type and severity."""
+        if event_type == "fault":
+            # Stress accumulates during faults
+            self.current_stress = min(
+                self.max_stress,
+                self.current_stress + (self.max_stress - self.current_stress) * 
+                self.accumulation_rate * severity
+            )
+        elif event_type == "recovery":
+            # Stress decays during recovery
+            self.current_stress = max(
+                0.0,
+                self.current_stress - self.current_stress * self.decay_rate * severity
+            )
+        
+        self.stress_history.append(self.current_stress)
+        return self.current_stress
+    
+    def get_stress_level(self) -> str:
+        """Return categorical stress level."""
+        if self.current_stress < 0.3:
+            return "LOW"
+        elif self.current_stress < 0.7:
+            return "MEDIUM"
+        else:
+            return "HIGH"
+    
+    def get_stress_score(self) -> float:
+        """Return numeric stress score (0-1)."""
+        return round(self.current_stress, 4)
+
+
+class SectionBehavioralModel:
+    """Per-section behavioral model adapted from the paper's individual model layer.
+    
+    Each section has different characteristics that affect its response to faults
+    and recovery operations, similar to how each vehicle in the paper has different
+    driver behavior parameters.
+    """
+    
+    def __init__(self, section_id: int, customer_count: int, 
+                 base_response_time: float = 0.5):
+        self.section_id = section_id
+        self.customer_count = customer_count
+        self.base_response_time = base_response_time
+        
+        # Behavioral parameters (randomly initialized per section)
+        random.seed(RANDOM_SEED + section_id)
+        self.resilience_factor = random.uniform(0.8, 1.2)  # How resilient to faults
+        self.recovery_speed = random.uniform(0.8, 1.2)  # How fast to recover
+        self.coordination_weight = random.uniform(0.5, 1.0)  # How much to coordinate
+        self.stress_sensitivity = random.uniform(0.8, 1.2)  # How much stress affects
+        
+    def get_response_time(self, stress_level: float) -> float:
+        """Calculate response time based on stress and behavioral factors."""
+        stress_factor = 1.0 + (stress_level * self.stress_sensitivity)
+        return self.base_response_time * stress_factor / self.recovery_speed
+    
+    def get_isolation_priority(self, anomaly_severity: float) -> int:
+        """Calculate isolation priority (lower = more urgent)."""
+        # Higher severity and lower resilience = more urgent
+        priority_score = anomaly_severity / self.resilience_factor
+        if priority_score > 0.7:
+            return 1  # CRITICAL
+        elif priority_score > 0.4:
+            return 2  # HIGH
+        else:
+            return 3  # MEDIUM
+
+
+class MultiLevelDispatchFramework:
+    """Multi-level dispatch decision framework adapted from the paper's 4-layer architecture.
+    
+    Paper's 4 layers:
+    1. Decision Model Layer - High-level strategic decisions
+    2. Game Model Layer - Multi-agent interaction and coordination
+    3. Individual Model Layer - Per-agent behavioral decisions
+    4. Transform Model Layer - Physical transformation/actuation
+    
+    Our adaptation:
+    1. Strategic Layer - Grid-wide emergency response strategy
+    2. Coordination Layer - Section-to-section interaction and resource allocation
+    3. Individual Layer - Per-section behavioral decisions
+    4. Actuation Layer - Physical breaker/reroute operations
+    """
+    
+    def __init__(self, num_sections: int):
+        self.num_sections = num_sections
+        self.stress_indicator = GridStressIndicator()
+        self.sections = [
+            SectionBehavioralModel(i, 120 + 10 * i) 
+            for i in range(num_sections)
+        ]
+        self.global_strategy = "isolate_and_reroute"
+        self.coordination_matrix = self._build_coordination_matrix()
+        
+    def _build_coordination_matrix(self) -> list[list[float]]:
+        """Build section coordination matrix (who coordinates with whom)."""
+        matrix = [[0.0] * self.num_sections for _ in range(self.num_sections)]
+        for i in range(self.num_sections):
+            for j in range(self.num_sections):
+                if i != j:
+                    # Adjacent sections coordinate more strongly
+                    distance = min(abs(i - j), self.num_sections - abs(i - j))
+                    if distance == 1:
+                        matrix[i][j] = 0.9  # Strong coordination
+                    elif distance == 2:
+                        matrix[i][j] = 0.5  # Medium coordination
+                    else:
+                        matrix[i][j] = 0.1  # Weak coordination
+        return matrix
+    
+    def strategic_decision(self, alert_count: int, stress_level: str) -> str:
+        """Layer 1: Strategic decision based on overall grid state."""
+        if stress_level == "HIGH" or alert_count > self.num_sections // 2:
+            return "cascade_protection"
+        elif stress_level == "MEDIUM" or alert_count > 1:
+            return "isolate_and_reroute"
+        else:
+            return "single_section_isolation"
+    
+    def coordination_decision(self, sections: list[int], strategy: str) -> dict[int, list[int]]:
+        """Layer 2: Coordination decisions between sections."""
+        coordination_plan = {s: [] for s in sections}
+        
+        if strategy == "cascade_protection":
+            # All sections coordinate with all others
+            for s in sections:
+                coordination_plan[s] = [other for other in sections if other != s]
+        elif strategy == "isolate_and_reroute":
+            # Adjacent sections coordinate
+            for s in sections:
+                adjacent = [
+                    other for other in sections 
+                    if other != s and self.coordination_matrix[s][other] > 0.5
+                ]
+                coordination_plan[s] = adjacent
+        else:
+            # Single section isolation - minimal coordination
+            for s in sections:
+                coordination_plan[s] = []
+        
+        return coordination_plan
+    
+    def individual_decision(self, section_id: int, anomaly_type: str, 
+                           error_magnitude: float, thd_value: float) -> dict:
+        """Layer 3: Individual section decision based on behavioral model."""
+        section = self.sections[section_id]
+        stress = self.stress_indicator.get_stress_score()
+        
+        # Determine action based on anomaly type and severity
+        if anomaly_type in ("transient", "sag"):
+            action = "isolate"
+            response_time = section.get_response_time(stress)
+        elif anomaly_type == "harmonic":
+            action = "monitor_and_isolate"
+            response_time = section.get_response_time(stress) * 1.5
+        else:
+            action = "inspect"
+            response_time = section.get_response_time(stress) * 2.0
+        
+        # Calculate priority
+        severity = min(1.0, error_magnitude / 0.1)  # Normalize error to 0-1
+        priority = section.get_isolation_priority(severity)
+        
+        return {
+            "section_id": section_id,
+            "action": action,
+            "response_time": round(response_time, 3),
+            "priority": priority,
+            "coordination_needed": section.coordination_weight > 0.7,
+            "customers_affected": section.customer_count,
+        }
+    
+    def actuation_decision(self, individual_decisions: list[dict]) -> list[dict]:
+        """Layer 4: Physical actuation decisions (breaker operations, rerouting)."""
+        actuations = []
+        
+        for decision in individual_decisions:
+            section_id = decision["section_id"]
+            action = decision["action"]
+            
+            if action == "isolate":
+                actuations.append({
+                    "section": f"SEC-{section_id:02d}",
+                    "breaker": f"BRK-{section_id:02d}",
+                    "operation": "OPEN",
+                    "tie_switch": f"TIE-{section_id:02d}-{(section_id + 1) % self.num_sections:02d}",
+                    "reroute": True,
+                    "response_time": decision["response_time"],
+                    "priority": decision["priority"],
+                })
+            elif action == "monitor_and_isolate":
+                actuations.append({
+                    "section": f"SEC-{section_id:02d}",
+                    "breaker": f"BRK-{section_id:02d}",
+                    "operation": "MONITOR_THEN_OPEN",
+                    "tie_switch": f"TIE-{section_id:02d}-{(section_id + 1) % self.num_sections:02d}",
+                    "reroute": True,
+                    "response_time": decision["response_time"] * 1.5,
+                    "priority": decision["priority"],
+                })
+            else:
+                actuations.append({
+                    "section": f"SEC-{section_id:02d}",
+                    "breaker": f"BRK-{section_id:02d}",
+                    "operation": "INSPECT",
+                    "tie_switch": None,
+                    "reroute": False,
+                    "response_time": decision["response_time"] * 2.0,
+                    "priority": decision["priority"],
+                })
+        
+        return actuations
+    
+    def execute_decision_cycle(self, alerts: list[dict]) -> dict:
+        """Execute complete multi-level decision cycle."""
+        # Layer 1: Strategic decision
+        alert_count = len(alerts)
+        strategy = self.strategic_decision(alert_count, 
+                                          self.stress_indicator.get_stress_level())
+        
+        # Update stress based on alert count
+        if alert_count > 0:
+            self.stress_indicator.update("fault", min(1.0, alert_count / self.num_sections))
+        
+        # Layer 2: Coordination decision
+        sections = [alert["section_id"] for alert in alerts]
+        coordination_plan = self.coordination_decision(sections, strategy)
+        
+        # Layer 3: Individual decisions
+        individual_decisions = []
+        for alert in alerts:
+            decision = self.individual_decision(
+                alert["section_id"],
+                alert["anomaly_type"],
+                alert["error_magnitude"],
+                alert["thd_value"]
+            )
+            individual_decisions.append(decision)
+        
+        # Layer 4: Actuation decisions
+        actuations = self.actuation_decision(individual_decisions)
+        
+        # Calculate recovery and update stress
+        if actuations:
+            recovery_time = max(a["response_time"] for a in actuations)
+            self.stress_indicator.update("recovery", recovery_time / 10.0)
+        
+        return {
+            "strategy": strategy,
+            "coordination_plan": coordination_plan,
+            "individual_decisions": individual_decisions,
+            "actuations": actuations,
+            "stress_level": self.stress_indicator.get_stress_level(),
+            "stress_score": self.stress_indicator.get_stress_score(),
+        }
+
+
 def run_self_healing_simulation(
     bundle: GeneratedWaveforms,
     diagnostics: dict[str, torch.Tensor],
@@ -2861,6 +3259,17 @@ def run_self_healing_simulation(
     customers_isolated = sum(
         section_customers[section] for section in sections_isolated
     )
+    total_customers = sum(section_customers)
+    total_interruptions = len(sections_isolated)
+    # IEEE 1366 reliability indices: SAIFI, SAIDI, CAIDI
+    # SAIFI = total customer interruptions / total customers served
+    # SAIDI = sum(customer-minutes interrupted) / total customers served
+    # CAIDI = SAIDI / SAIFI (average restoration duration per interruption)
+    saifi = total_interruptions / max(total_customers, 1)
+    restoration_seconds = 0.5 + 2.0  # isolation + reroute
+    customer_minutes = customers_isolated * restoration_seconds
+    saidi = customer_minutes / max(total_customers, 1)
+    caidi = customer_minutes / max(customers_isolated, 1) if customers_isolated else 0.0
     summary = {
         "sections": GRID_SECTIONS,
         "alerts_dispatched": len(dispatches),
@@ -2875,6 +3284,14 @@ def run_self_healing_simulation(
             level: sum(item["priority"] == level for item in dispatches)
             for level in ("CRITICAL", "HIGH", "MEDIUM")
         },
+        "reliability_indices": {
+            "SAIFI": round(saifi, 6),
+            "SAIDI": round(saidi, 6),
+            "CAIDI": round(caidi, 2),
+            "total_customers_served": total_customers,
+            "total_customer_interruptions": total_interruptions,
+            "customer_minutes_interrupted": round(customer_minutes, 2),
+        },
         "artifact": "grid_dispatches.json",
     }
     artifact = {
@@ -2888,12 +3305,47 @@ def run_self_healing_simulation(
             "demonstration and carry no real-world meaning."
         ),
     }
+    # Integrate multi-level dispatch decision framework
+    framework = MultiLevelDispatchFramework(GRID_SECTIONS)
+    
+    # Prepare alerts for the framework
+    alerts_for_framework = []
+    for i, (index, order) in enumerate(zip(flagged, range(1, len(flagged) + 1))):
+        source_index = int(bundle.test_source_indices[index])
+        section = source_index % GRID_SECTIONS
+        anomaly_type = bundle.test_anomaly_types[index]
+        error_magnitude = float(errors[index])
+        thd_value = float(thd_values[index])
+        
+        alerts_for_framework.append({
+            "section_id": section,
+            "anomaly_type": anomaly_type,
+            "error_magnitude": error_magnitude,
+            "thd_value": thd_value,
+        })
+    
+    # Execute multi-level decision cycle
+    decision_result = framework.execute_decision_cycle(alerts_for_framework)
+    
+    # Add grid stress indicator to summary
+    summary["grid_stress"] = {
+        "level": decision_result["stress_level"],
+        "score": decision_result["stress_score"],
+        "strategy": decision_result["strategy"],
+        "coordination_sections": len(decision_result["coordination_plan"]),
+    }
+    
+    # Add individual decisions to artifact
+    artifact["multi_level_decisions"] = decision_result
+    
     print(
         f"[HEAL] dispatches={len(dispatches)} sections="
         f"{len(sections_isolated)}/{GRID_SECTIONS} "
         f"critical={summary['priorities']['CRITICAL']} "
         f"high={summary['priorities']['HIGH']} "
-        f"medium={summary['priorities']['MEDIUM']}"
+        f"medium={summary['priorities']['MEDIUM']} "
+        f"stress={summary['grid_stress']['level']} "
+        f"strategy={summary['grid_stress']['strategy']}"
     )
     return summary, artifact
 

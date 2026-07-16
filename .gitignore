@@ -21,3 +21,9 @@ simulation_site/.vercel/
 
 # Documentation images
 topo-after-*.jpeg
+
+# Node
+node_modules/
+
+# Playwright test output
+test-results/

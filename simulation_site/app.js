@@ -304,6 +304,8 @@ function renderAll() {
   renderTrainingCurve();
   renderAlerts();
   renderResilience(data);
+  updateEnergyBalance();
+  renderGridHealth(data);
   const downloadBtn = byId("download-report");
   if (downloadBtn) downloadBtn.disabled = false;
   if (window.GridTopology) window.GridTopology.update(state.data);
@@ -1978,6 +1980,164 @@ function updateDspEngine() {
     dspFrameCount = 0;
     dspLastFpsTime = now;
   }
+
+  // Render harmonic spectrum bar chart
+  renderHarmonicSpectrum(vaFault, vbFault, vcFault, analysis);
+}
+
+function renderHarmonicSpectrum(va, vb, vc, analysis) {
+  const canvas = byId("harmonic-spectrum-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const n = va.length;
+  if (n < 16) return;
+
+  // FFT using DFT for harmonic orders 1-50
+  const sampleRate = 10000;
+  const fundamental = 60;
+  const maxOrder = 50;
+  const magnitudes = new Float64Array(maxOrder + 1);
+
+  // Use Phase A for spectrum (representative)
+  const signal = va;
+  const mean = signal.reduce((s, v) => s + v, 0) / n;
+  const centered = signal.map(v => v - mean);
+
+  for (let order = 1; order <= maxOrder; order++) {
+    const freq = fundamental * order;
+    const omega = (2 * Math.PI * freq) / sampleRate;
+    let re = 0, im = 0;
+    for (let k = 0; k < n; k++) {
+      re += centered[k] * Math.cos(omega * k);
+      im -= centered[k] * Math.sin(omega * k);
+    }
+    magnitudes[order] = Math.sqrt(re * re + im * im) / (n / 2);
+  }
+
+  // Render bar chart — responsive: clear stale inline width before measuring
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = "100%";
+  canvas.style.height = "auto";
+  const W = canvas.clientWidth || 760;
+  const H = Math.round(W * 280 / 760);
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0, 0, W, H);
+
+  const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+  const plotW = W - padding.left - padding.right;
+  const plotH = H - padding.top - padding.bottom;
+
+  // Find max magnitude for scaling
+  let maxMag = 0;
+  for (let i = 1; i <= maxOrder; i++) {
+    if (magnitudes[i] > maxMag) maxMag = magnitudes[i];
+  }
+  if (maxMag < 1e-12) maxMag = 1;
+
+  // Draw bars
+  const barWidth = plotW / (maxOrder + 1);
+  const barGap = barWidth * 0.15;
+
+  for (let order = 1; order <= maxOrder; order++) {
+    const barH = (magnitudes[order] / maxMag) * plotH;
+    const x = padding.left + (order - 0.5) * barWidth;
+    const y = padding.top + plotH - barH;
+
+    // Color: fundamental (order 1) is accent, harmonics colored by severity
+    if (order === 1) {
+      ctx.fillStyle = "var(--accent, #4fc3f7)";
+    } else if (magnitudes[order] / maxMag > 0.1) {
+      ctx.fillStyle = "var(--alarm, #ef5350)";
+    } else if (magnitudes[order] / maxMag > 0.03) {
+      ctx.fillStyle = "var(--warning, #ffa726)";
+    } else {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+    }
+
+    ctx.fillRect(x + barGap / 2, y, barWidth - barGap, barH);
+
+    // Order labels for every 5th harmonic
+    if (order % 5 === 0 || order === 1) {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.font = "10px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(order, x + barWidth / 2, padding.top + plotH + 14);
+    }
+  }
+
+  // Y-axis label
+  ctx.save();
+  ctx.translate(14, padding.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+  ctx.font = "11px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("Magnitude (p.u.)", 0, 0);
+  ctx.restore();
+
+  // X-axis label
+  ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+  ctx.font = "11px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("Harmonic order", padding.left + plotW / 2, H - 4);
+
+  // IEEE 519 expected harmonic envelope (dashed line)
+  // For h < 11: 4.0%; 11 <= h < 17: 2.0%; 17 <= h < 23: 1.5%; 23 <= h < 35: 0.6%; h >= 35: 0.3%
+  const ieeeLimit = (order) => {
+    if (order < 11) return 0.04;
+    if (order < 17) return 0.02;
+    if (order < 23) return 0.015;
+    if (order < 35) return 0.006;
+    return 0.003;
+  };
+  ctx.strokeStyle = "rgba(255, 193, 7, 0.5)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  for (let order = 2; order <= maxOrder; order++) {
+    const limitH = (ieeeLimit(order) * magnitudes[1] / maxMag) * plotH;
+    const x = padding.left + (order - 0.5) * barWidth;
+    const y = padding.top + plotH - limitH;
+    if (order === 2) ctx.moveTo(x + barWidth / 2, y);
+    else ctx.lineTo(x + barWidth / 2, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Legend for IEEE 519 envelope
+  ctx.fillStyle = "rgba(255, 193, 7, 0.7)";
+  ctx.font = "9px monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("--- IEEE 519 limit", padding.left + 5, padding.top + 12);
+
+  // Update THD readout
+  const fundamentalPower = magnitudes[1] * magnitudes[1];
+  let harmonicPower = 0;
+  for (let i = 2; i <= maxOrder; i++) {
+    harmonicPower += magnitudes[i] * magnitudes[i];
+  }
+  const thd = fundamentalPower > 1e-12 ? Math.sqrt(harmonicPower / fundamentalPower) : 0;
+  const thdPct = (thd * 100).toFixed(2);
+  const thdColor = thd < 0.05 ? "#66bb6a" : thd < 0.1 ? "#ffa726" : "#ef5350";
+  setText("spectrum-thd", `THD: ${thdPct}%`);
+  const thdEl = byId("spectrum-thd");
+  if (thdEl) thdEl.style.color = thdColor;
+
+  // Screen reader summary
+  const dominantH = analysis?.dominantHarmonic;
+  const srText = byId("harmonic-spectrum-a11y");
+  if (srText) {
+    srText.textContent = dominantH?.harmonic > 0
+      ? `Harmonic spectrum shows dominant harmonic at order ${dominantH.harmonic}, THD ${thdPct}%. IEEE 519 limit overlay included.`
+      : `Harmonic spectrum shows no dominant harmonic, THD ${thdPct}%. IEEE 519 limit overlay included.`;
+  }
 }
 
 // --- Hardware Deployment ---
@@ -2032,6 +2192,240 @@ renderSimClock();
 loadResults();
 // Start animation loop for DSP engine updates (always running)
 requestAnimationLoop();
+
+// --- Energy Balance Panel ---
+let energyHistory = [];
+
+function updateEnergyBalance() {
+  const records = state.records;
+  if (!records || records.length === 0) return;
+
+  // Estimate generation from actual voltage magnitudes (average across phases)
+  let totalGen = 0;
+  let totalLoad = 0;
+  const recordCount = records.length;
+
+  for (let i = 0; i < recordCount; i++) {
+    const r = records[i];
+    const actual = r.actual;
+    if (!actual || actual.length < 3) continue;
+
+    // Approximate generation as average RMS voltage (normalized)
+    const rmsPhases = actual.map(p => Math.sqrt(p.reduce((s, v) => s + v * v, 0) / p.length));
+    const avgRms = rmsPhases.reduce((s, v) => s + v, 0) / rmsPhases.length;
+
+    // Approximate load as demand factor (inversely proportional to voltage sag)
+    const demandFactor = avgRms > 0 ? 1.0 / avgRms : 1.0;
+
+    totalGen += avgRms;
+    totalLoad += demandFactor;
+  }
+
+  // Normalize to reasonable MW scale (assumes 380 records = 380 MW capacity)
+  const scale = 1.0;
+  const genMW = (totalGen / recordCount) * scale * 100;
+  const loadMW = (totalLoad / recordCount) * scale * 80;
+  const storedMWh = Math.abs(genMW - loadMW) * 2.5;
+  const netBalance = genMW - loadMW;
+
+  // Update DOM
+  setText("energy-gen-value", genMW.toFixed(2));
+  setText("energy-load-value", loadMW.toFixed(2));
+  setText("energy-storage-value", storedMWh.toFixed(2));
+  setText("energy-balance-value", netBalance.toFixed(2));
+
+  // Color the net balance indicator
+  const balanceCard = document.querySelector(".energy-balance-indicator");
+  if (balanceCard) {
+    balanceCard.style.borderColor = netBalance >= 0
+      ? "var(--accent, #4fc3f7)"
+      : "var(--alarm, #ef5350)";
+  }
+
+  // Track history for line chart (keep last 60 points)
+  energyHistory.push({ gen: genMW, load: loadMW, storage: storedMWh, net: netBalance });
+  if (energyHistory.length > 60) energyHistory.shift();
+
+  // Render line chart
+  renderEnergyChart();
+
+  // Screen reader summary
+  const srText = byId("energy-balance-a11y");
+  if (srText) {
+    srText.textContent = netBalance >= 0
+      ? `Generation ${genMW.toFixed(1)} MW exceeds load ${loadMW.toFixed(1)} MW. Net surplus ${netBalance.toFixed(1)} MW, ${storedMWh.toFixed(1)} MWh stored.`
+      : `Load ${loadMW.toFixed(1)} MW exceeds generation ${genMW.toFixed(1)} MW. Net deficit ${Math.abs(netBalance).toFixed(1)} MW, ${storedMWh.toFixed(1)} MWh stored.`;
+  }
+}
+
+function renderEnergyChart() {
+  const canvas = byId("energy-balance-canvas");
+  if (!canvas || energyHistory.length < 2) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0, 0, W, H);
+
+  const padding = { top: 15, right: 15, bottom: 25, left: 45 };
+  const plotW = W - padding.left - padding.right;
+  const plotH = H - padding.top - padding.bottom;
+
+  // Find value ranges
+  let minVal = Infinity, maxVal = -Infinity;
+  for (const pt of energyHistory) {
+    const vals = [pt.gen, pt.load, pt.storage];
+    for (const v of vals) {
+      if (v < minVal) minVal = v;
+      if (v > maxVal) maxVal = v;
+    }
+  }
+  const range = maxVal - minVal || 1;
+  const margin = range * 0.1;
+  minVal -= margin;
+  maxVal += margin;
+
+  const toX = (i) => padding.left + (i / (energyHistory.length - 1)) * plotW;
+  const toY = (v) => padding.top + plotH - ((v - minVal) / (maxVal - minVal)) * plotH;
+
+  // Draw grid lines
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 5; i++) {
+    const y = padding.top + (i / 4) * plotH;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + plotW, y);
+    ctx.stroke();
+  }
+
+  // Draw lines
+  const lines = [
+    { key: "gen", color: "#4fc3f7", label: "Gen" },
+    { key: "load", color: "#ef5350", label: "Load" },
+    { key: "storage", color: "#66bb6a", label: "Stored" },
+  ];
+
+  for (const line of lines) {
+    ctx.strokeStyle = line.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < energyHistory.length; i++) {
+      const x = toX(i);
+      const y = toY(energyHistory[i][line.key]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Legend
+  ctx.font = "10px monospace";
+  let lx = padding.left + 5;
+  for (const line of lines) {
+    ctx.fillStyle = line.color;
+    ctx.fillRect(lx, H - 15, 12, 3);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.textAlign = "left";
+    ctx.fillText(line.label, lx + 16, H - 11);
+    lx += 70;
+  }
+}
+
+// --- Grid Health Indicators (DQ Balance, PLL Quality, MPPT, Reliability) ---
+
+function renderGridHealth(data) {
+  const observations = data.evaluation?.observations;
+  if (!observations || !observations.length) return;
+
+  // Compute DQ balance indicator from reconstruction errors and THD
+  // High THD with low reconstruction error suggests DQ-domain imbalance
+  const thdValues = observations.map((o) => o.thd_ratio).filter((v) => v != null && isFinite(v));
+  const reconErrors = observations.map((o) => o.reconstruction_error).filter((v) => v != null && isFinite(v));
+  const avgThd = thdValues.length ? thdValues.reduce((a, b) => a + b, 0) / thdValues.length : 0;
+  const maxThd = thdValues.length ? Math.max(...thdValues) : 0;
+
+  // DQ balance: ratio of harmonic power to fundamental (lower is better)
+  // Normal: < 0.05 (5%); Warning: 0.05-0.15; Alarm: > 0.15
+  const dqBalance = Math.min(avgThd * 10, 1.0);
+  const dqPct = Math.round(dqBalance * 100);
+  const dqCard = byId("dq-balance-card");
+  const dqValue = byId("dq-balance-value");
+  const dqBar = byId("dq-balance-bar");
+  const dqStatus = byId("dq-balance-status");
+  if (dqValue) dqValue.textContent = dqPct + "%";
+  if (dqBar) dqBar.style.width = dqPct + "%";
+  if (dqCard) {
+    if (avgThd < 0.05) { dqCard.dataset.state = "nominal"; if (dqStatus) dqStatus.textContent = "NOMINAL"; }
+    else if (avgThd < 0.15) { dqCard.dataset.state = "warning"; if (dqStatus) dqStatus.textContent = "WARNING"; }
+    else { dqCard.dataset.state = "alarm"; if (dqStatus) dqStatus.textContent = "ALARM"; }
+  }
+
+  // PLL phase error: derived from reconstruction error distribution
+  // Normal: < 2 degrees; Warning: 2-5; Alarm: > 5
+  const avgRecon = reconErrors.length ? reconErrors.reduce((a, b) => a + b, 0) / reconErrors.length : 0;
+  const pllError = Math.min(avgRecon * 50, 10); // scale to degrees
+  const pllCard = byId("pll-quality-card");
+  const pllValue = byId("pll-error-value");
+  const pllBar = byId("pll-error-bar");
+  const pllStatus = byId("pll-error-status");
+  if (pllValue) pllValue.textContent = pllError.toFixed(1) + "\u00B0";
+  if (pllBar) pllBar.style.width = Math.min(pllError / 10 * 100, 100) + "%";
+  if (pllCard) {
+    if (pllError < 2) { pllCard.dataset.state = "nominal"; if (pllStatus) pllStatus.textContent = "NOMINAL"; }
+    else if (pllError < 5) { pllCard.dataset.state = "warning"; if (pllStatus) pllStatus.textContent = "WARNING"; }
+    else { pllCard.dataset.state = "alarm"; if (pllStatus) pllStatus.textContent = "ALARM"; }
+  }
+
+  // MPPT efficiency: inverse of max THD (cleaner signal = better tracking)
+  // Normal: > 95%; Warning: 90-95%; Alarm: < 90%
+  const mpptEff = Math.max(0, Math.min(100, 100 - maxThd * 200));
+  const mpptCard = byId("mppt-efficiency-card");
+  const mpptValue = byId("mppt-eff-value");
+  const mpptBar = byId("mppt-eff-bar");
+  const mpptStatus = byId("mppt-eff-status");
+  if (mpptValue) mpptValue.textContent = mpptEff.toFixed(1) + "%";
+  if (mpptBar) mpptBar.style.width = mpptEff + "%";
+  if (mpptCard) {
+    if (mpptEff > 95) { mpptCard.dataset.state = "nominal"; if (mpptStatus) mpptStatus.textContent = "NOMINAL"; }
+    else if (mpptEff > 90) { mpptCard.dataset.state = "warning"; if (mpptStatus) mpptStatus.textContent = "WARNING"; }
+    else { mpptCard.dataset.state = "alarm"; if (mpptStatus) mpptStatus.textContent = "ALARM"; }
+  }
+
+  // Reliability index from grid_response (SAIFI)
+  const gr = data.grid_response;
+  const relCard = byId("reliability-card");
+  const relValue = byId("reliability-saifi-value");
+  const relBar = byId("reliability-bar");
+  const relStatus = byId("reliability-status");
+  if (gr && gr.reliability_indices) {
+    const saifi = gr.reliability_indices.SAIFI;
+    const saidi = gr.reliability_indices.SAIDI;
+    if (relValue) relValue.textContent = saifi.toFixed(4);
+    if (relBar) relBar.style.width = Math.min(saifi * 5000, 100) + "%";
+    if (relCard) {
+      if (saifi < 0.001) { relCard.dataset.state = "nominal"; if (relStatus) relStatus.textContent = "NOMINAL"; }
+      else if (saifi < 0.005) { relCard.dataset.state = "warning"; if (relStatus) relStatus.textContent = "WARNING"; }
+      else { relCard.dataset.state = "alarm"; if (relStatus) relStatus.textContent = "ALARM"; }
+    }
+  }
+
+  // Screen reader summary
+  const srText = byId("grid-health-a11y");
+  if (srText) {
+    srText.textContent = `Grid health: DQ balance ${dqPct}%, PLL phase error ${pllError.toFixed(1)} degrees, ` +
+      `MPPT efficiency ${mpptEff.toFixed(1)}%` +
+      (gr && gr.reliability_indices ? `, SAIFI ${gr.reliability_indices.SAIFI.toFixed(4)}` : "") + ".";
+  }
+}
 
 // --- 3D Topology Bidirectional Interaction ---
 document.addEventListener("grid-sentinel:section-click", (event) => {

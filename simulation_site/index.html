@@ -359,6 +359,102 @@
             </div>
           </div>
         </div>
+        <div class="harmonic-spectrum-panel" id="harmonic-spectrum-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">FFT analysis</p>
+              <h3>Harmonic spectrum (orders 1-50)</h3>
+            </div>
+            <span class="dsp-thd" id="spectrum-thd">THD: —</span>
+          </div>
+          <canvas
+            id="harmonic-spectrum-canvas"
+            width="760"
+            height="280"
+            role="img"
+            aria-label="Bar chart of harmonic magnitudes from order 1 to 50. The fundamental at order 1 should dominate; elevated bars at higher orders indicate distortion."
+          ></canvas>
+          <p class="sr-only" id="harmonic-spectrum-a11y" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="energy-balance-section" aria-labelledby="energy-balance-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Energy balance</p>
+            <h2 id="energy-balance-heading">Generation / Consumption / Storage</h2>
+          </div>
+        </div>
+        <div class="energy-balance-grid">
+          <div class="energy-card energy-gen">
+            <span class="energy-icon">&#9889;</span>
+            <strong id="energy-gen-value">0.00</strong>
+            <span class="energy-unit">MW (generation)</span>
+          </div>
+          <div class="energy-card energy-load">
+            <span class="energy-icon">&#128268;</span>
+            <strong id="energy-load-value">0.00</strong>
+            <span class="energy-unit">MW (load)</span>
+          </div>
+          <div class="energy-card energy-storage">
+            <span class="energy-icon">&#128202;</span>
+            <strong id="energy-storage-value">0.00</strong>
+            <span class="energy-unit">MWh (stored)</span>
+          </div>
+          <div class="energy-card energy-balance-indicator">
+            <span class="energy-icon">&#8710;</span>
+            <strong id="energy-balance-value">0.00</strong>
+            <span class="energy-unit">MW (net balance)</span>
+          </div>
+        </div>
+        <canvas
+          id="energy-balance-canvas"
+          width="760"
+          height="200"
+          role="img"
+          aria-label="Line chart showing generation, load, and storage energy levels over time."
+        ></canvas>
+        <p class="sr-only" id="energy-balance-a11y" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="grid-health-section" aria-labelledby="grid-health-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Grid health indicators</p>
+            <h2 id="grid-health-heading">DQ Balance / PLL Quality / MPPT Efficiency</h2>
+          </div>
+        </div>
+        <div class="grid-health-grid">
+          <div class="grid-health-card" id="dq-balance-card">
+            <span class="health-label">DQ Current Balance</span>
+            <strong id="dq-balance-value">—</strong>
+            <span class="health-unit">Id/Iq ratio</span>
+            <div class="health-bar-track"><div class="health-bar-fill" id="dq-balance-bar"></div></div>
+            <span class="health-status" id="dq-balance-status">pending</span>
+          </div>
+          <div class="grid-health-card" id="pll-quality-card">
+            <span class="health-label">PLL Phase Error</span>
+            <strong id="pll-error-value">—</strong>
+            <span class="health-unit">degrees</span>
+            <div class="health-bar-track"><div class="health-bar-fill" id="pll-error-bar"></div></div>
+            <span class="health-status" id="pll-error-status">pending</span>
+          </div>
+          <div class="grid-health-card" id="mppt-efficiency-card">
+            <span class="health-label">MPPT Efficiency</span>
+            <strong id="mppt-eff-value">—</strong>
+            <span class="health-unit">% of MPP</span>
+            <div class="health-bar-track"><div class="health-bar-fill" id="mppt-eff-bar"></div></div>
+            <span class="health-status" id="mppt-eff-status">pending</span>
+          </div>
+          <div class="grid-health-card" id="reliability-card">
+            <span class="health-label">Reliability Index</span>
+            <strong id="reliability-saifi-value">—</strong>
+            <span class="health-unit">SAIFI (interruptions/customer)</span>
+            <div class="health-bar-track"><div class="health-bar-fill" id="reliability-bar"></div></div>
+            <span class="health-status" id="reliability-status">pending</span>
+          </div>
+        </div>
+        <p class="sr-only" id="grid-health-a11y" role="status" aria-live="polite"></p>
       </section>
 
       <section class="alerts-section" aria-labelledby="alerts-heading">

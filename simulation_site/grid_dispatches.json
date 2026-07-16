@@ -435,7 +435,514 @@
     "synthetic": true
   },
   "simulation_disclaimer": "Synthetic self-healing simulation. Sections, customers, coordinates, and response times are simulated for workflow demonstration and carry no real-world meaning.",
-  "run_id": "20260715T213651Z-seed42",
-  "results_sha256": "9a4a072e63ee2e2158f4fb626b9413b7e5d65980983902d506794aa3a707ae85",
-  "source_sha256": "d1a536b9a1bb1f58ecf797a8b05fcbad5fd95c4cf48ce92c048cfc51c846416f"
+  "multi_level_decisions": {
+    "strategy": "cascade_protection",
+    "coordination_plan": {
+      "1": [
+        5,
+        3,
+        3,
+        3,
+        2,
+        0,
+        0,
+        4,
+        3,
+        5,
+        2,
+        5,
+        7,
+        4,
+        0,
+        6,
+        5,
+        6
+      ],
+      "5": [
+        1,
+        3,
+        3,
+        3,
+        2,
+        0,
+        0,
+        1,
+        4,
+        3,
+        2,
+        7,
+        4,
+        0,
+        6,
+        6
+      ],
+      "3": [
+        1,
+        5,
+        2,
+        0,
+        0,
+        1,
+        4,
+        5,
+        2,
+        5,
+        7,
+        4,
+        0,
+        6,
+        5,
+        6
+      ],
+      "2": [
+        1,
+        5,
+        3,
+        3,
+        3,
+        0,
+        0,
+        1,
+        4,
+        3,
+        5,
+        5,
+        7,
+        4,
+        0,
+        6,
+        5,
+        6
+      ],
+      "0": [
+        1,
+        5,
+        3,
+        3,
+        3,
+        2,
+        1,
+        4,
+        3,
+        5,
+        2,
+        5,
+        7,
+        4,
+        6,
+        5,
+        6
+      ],
+      "4": [
+        1,
+        5,
+        3,
+        3,
+        3,
+        2,
+        0,
+        0,
+        1,
+        3,
+        5,
+        2,
+        5,
+        7,
+        0,
+        6,
+        5,
+        6
+      ],
+      "7": [
+        1,
+        5,
+        3,
+        3,
+        3,
+        2,
+        0,
+        0,
+        1,
+        4,
+        3,
+        5,
+        2,
+        5,
+        4,
+        0,
+        6,
+        5,
+        6
+      ],
+      "6": [
+        1,
+        5,
+        3,
+        3,
+        3,
+        2,
+        0,
+        0,
+        1,
+        4,
+        3,
+        5,
+        2,
+        5,
+        7,
+        4,
+        0,
+        5
+      ]
+    },
+    "individual_decisions": [
+      {
+        "section_id": 1,
+        "action": "monitor_and_isolate",
+        "response_time": 0.901,
+        "priority": 2,
+        "coordination_needed": false,
+        "customers_affected": 130
+      },
+      {
+        "section_id": 5,
+        "action": "isolate",
+        "response_time": 0.659,
+        "priority": 3,
+        "coordination_needed": true,
+        "customers_affected": 170
+      },
+      {
+        "section_id": 3,
+        "action": "isolate",
+        "response_time": 0.643,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 150
+      },
+      {
+        "section_id": 3,
+        "action": "monitor_and_isolate",
+        "response_time": 0.965,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 150
+      },
+      {
+        "section_id": 3,
+        "action": "monitor_and_isolate",
+        "response_time": 0.965,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 150
+      },
+      {
+        "section_id": 2,
+        "action": "monitor_and_isolate",
+        "response_time": 0.93,
+        "priority": 3,
+        "coordination_needed": true,
+        "customers_affected": 140
+      },
+      {
+        "section_id": 0,
+        "action": "isolate",
+        "response_time": 0.782,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 120
+      },
+      {
+        "section_id": 0,
+        "action": "monitor_and_isolate",
+        "response_time": 1.173,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 120
+      },
+      {
+        "section_id": 1,
+        "action": "monitor_and_isolate",
+        "response_time": 0.901,
+        "priority": 2,
+        "coordination_needed": false,
+        "customers_affected": 130
+      },
+      {
+        "section_id": 4,
+        "action": "monitor_and_isolate",
+        "response_time": 1.049,
+        "priority": 3,
+        "coordination_needed": true,
+        "customers_affected": 160
+      },
+      {
+        "section_id": 3,
+        "action": "isolate",
+        "response_time": 0.643,
+        "priority": 2,
+        "coordination_needed": false,
+        "customers_affected": 150
+      },
+      {
+        "section_id": 5,
+        "action": "monitor_and_isolate",
+        "response_time": 0.989,
+        "priority": 3,
+        "coordination_needed": true,
+        "customers_affected": 170
+      },
+      {
+        "section_id": 2,
+        "action": "monitor_and_isolate",
+        "response_time": 0.93,
+        "priority": 3,
+        "coordination_needed": true,
+        "customers_affected": 140
+      },
+      {
+        "section_id": 5,
+        "action": "isolate",
+        "response_time": 0.659,
+        "priority": 1,
+        "coordination_needed": true,
+        "customers_affected": 170
+      },
+      {
+        "section_id": 7,
+        "action": "monitor_and_isolate",
+        "response_time": 1.034,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 190
+      },
+      {
+        "section_id": 4,
+        "action": "isolate",
+        "response_time": 0.7,
+        "priority": 2,
+        "coordination_needed": true,
+        "customers_affected": 160
+      },
+      {
+        "section_id": 0,
+        "action": "monitor_and_isolate",
+        "response_time": 1.173,
+        "priority": 3,
+        "coordination_needed": false,
+        "customers_affected": 120
+      },
+      {
+        "section_id": 6,
+        "action": "isolate",
+        "response_time": 0.748,
+        "priority": 2,
+        "coordination_needed": true,
+        "customers_affected": 180
+      },
+      {
+        "section_id": 5,
+        "action": "isolate",
+        "response_time": 0.659,
+        "priority": 2,
+        "coordination_needed": true,
+        "customers_affected": 170
+      },
+      {
+        "section_id": 6,
+        "action": "monitor_and_isolate",
+        "response_time": 1.122,
+        "priority": 3,
+        "coordination_needed": true,
+        "customers_affected": 180
+      }
+    ],
+    "actuations": [
+      {
+        "section": "SEC-01",
+        "breaker": "BRK-01",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-01-02",
+        "reroute": true,
+        "response_time": 1.3515000000000001,
+        "priority": 2
+      },
+      {
+        "section": "SEC-05",
+        "breaker": "BRK-05",
+        "operation": "OPEN",
+        "tie_switch": "TIE-05-06",
+        "reroute": true,
+        "response_time": 0.659,
+        "priority": 3
+      },
+      {
+        "section": "SEC-03",
+        "breaker": "BRK-03",
+        "operation": "OPEN",
+        "tie_switch": "TIE-03-04",
+        "reroute": true,
+        "response_time": 0.643,
+        "priority": 3
+      },
+      {
+        "section": "SEC-03",
+        "breaker": "BRK-03",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-03-04",
+        "reroute": true,
+        "response_time": 1.4475,
+        "priority": 3
+      },
+      {
+        "section": "SEC-03",
+        "breaker": "BRK-03",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-03-04",
+        "reroute": true,
+        "response_time": 1.4475,
+        "priority": 3
+      },
+      {
+        "section": "SEC-02",
+        "breaker": "BRK-02",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-02-03",
+        "reroute": true,
+        "response_time": 1.395,
+        "priority": 3
+      },
+      {
+        "section": "SEC-00",
+        "breaker": "BRK-00",
+        "operation": "OPEN",
+        "tie_switch": "TIE-00-01",
+        "reroute": true,
+        "response_time": 0.782,
+        "priority": 3
+      },
+      {
+        "section": "SEC-00",
+        "breaker": "BRK-00",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-00-01",
+        "reroute": true,
+        "response_time": 1.7595,
+        "priority": 3
+      },
+      {
+        "section": "SEC-01",
+        "breaker": "BRK-01",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-01-02",
+        "reroute": true,
+        "response_time": 1.3515000000000001,
+        "priority": 2
+      },
+      {
+        "section": "SEC-04",
+        "breaker": "BRK-04",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-04-05",
+        "reroute": true,
+        "response_time": 1.5735,
+        "priority": 3
+      },
+      {
+        "section": "SEC-03",
+        "breaker": "BRK-03",
+        "operation": "OPEN",
+        "tie_switch": "TIE-03-04",
+        "reroute": true,
+        "response_time": 0.643,
+        "priority": 2
+      },
+      {
+        "section": "SEC-05",
+        "breaker": "BRK-05",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-05-06",
+        "reroute": true,
+        "response_time": 1.4835,
+        "priority": 3
+      },
+      {
+        "section": "SEC-02",
+        "breaker": "BRK-02",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-02-03",
+        "reroute": true,
+        "response_time": 1.395,
+        "priority": 3
+      },
+      {
+        "section": "SEC-05",
+        "breaker": "BRK-05",
+        "operation": "OPEN",
+        "tie_switch": "TIE-05-06",
+        "reroute": true,
+        "response_time": 0.659,
+        "priority": 1
+      },
+      {
+        "section": "SEC-07",
+        "breaker": "BRK-07",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-07-00",
+        "reroute": true,
+        "response_time": 1.5510000000000002,
+        "priority": 3
+      },
+      {
+        "section": "SEC-04",
+        "breaker": "BRK-04",
+        "operation": "OPEN",
+        "tie_switch": "TIE-04-05",
+        "reroute": true,
+        "response_time": 0.7,
+        "priority": 2
+      },
+      {
+        "section": "SEC-00",
+        "breaker": "BRK-00",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-00-01",
+        "reroute": true,
+        "response_time": 1.7595,
+        "priority": 3
+      },
+      {
+        "section": "SEC-06",
+        "breaker": "BRK-06",
+        "operation": "OPEN",
+        "tie_switch": "TIE-06-07",
+        "reroute": true,
+        "response_time": 0.748,
+        "priority": 2
+      },
+      {
+        "section": "SEC-05",
+        "breaker": "BRK-05",
+        "operation": "OPEN",
+        "tie_switch": "TIE-05-06",
+        "reroute": true,
+        "response_time": 0.659,
+        "priority": 2
+      },
+      {
+        "section": "SEC-06",
+        "breaker": "BRK-06",
+        "operation": "MONITOR_THEN_OPEN",
+        "tie_switch": "TIE-06-07",
+        "reroute": true,
+        "response_time": 1.6830000000000003,
+        "priority": 3
+      }
+    ],
+    "stress_level": "LOW",
+    "stress_score": 0.2947
+  },
+  "run_id": "20260715T234424Z-seed42",
+  "results_sha256": "427c549440ce83b5abca64e429355aaf8d324fa6bfd4da2fa00d013aba7391ff",
+  "source_sha256": "c1b05c757b0eadbf318e0d1703bacdea53056d17fd9c4ade8182c95022c1b3c4"
 }

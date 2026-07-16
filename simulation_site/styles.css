@@ -86,6 +86,7 @@ html {
 
 body {
   min-width: 320px;
+  overflow-x: hidden;
   background:
     radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.2 0.06 220 / 0.15), transparent),
     var(--bg);
@@ -774,7 +775,7 @@ th {
 
 /* --- Alerts Table --- */
 .alerts-section .panel-heading { margin-bottom: 0.9rem; }
-.table-scroll { overflow-x: auto; border-radius: var(--radius-sm); }
+.table-scroll { overflow-x: auto; border-radius: var(--radius-sm); max-width: 100%; }
 .alerts-table { min-width: 760px; }
 .alerts-table tbody tr {
   cursor: pointer;
@@ -1626,7 +1627,8 @@ footer {
 .provenance,
 .alerts-section,
 .dsp-section,
-.hardware-section {
+.hardware-section,
+.energy-balance-section {
   animation: fade-up 0.5s ease both;
 }
 
@@ -1640,3 +1642,159 @@ footer {
 .provenance { animation-delay: 0.35s; }
 .dsp-section { animation-delay: 0.4s; }
 .hardware-section { animation-delay: 0.45s; }
+.energy-balance-section { animation-delay: 0.5s; }
+
+/* --- Harmonic Spectrum Panel --- */
+.harmonic-spectrum-panel {
+  margin-top: var(--space-3, 1rem);
+  padding: var(--space-3, 1rem);
+  background: oklch(0.12 0.01 250 / 0.4);
+  border: 1px solid var(--line-soft, rgba(255,255,255,0.08));
+  border-radius: 12px;
+}
+
+.harmonic-spectrum-panel canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dsp-thd {
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+  color: var(--accent, #4fc3f7);
+}
+
+/* --- Energy Balance Section --- */
+.energy-balance-section {
+  margin-top: var(--space-3, 1rem);
+  padding: var(--space-3, 1rem);
+  background: oklch(0.12 0.01 250 / 0.4);
+  border: 1px solid var(--line-soft, rgba(255,255,255,0.08));
+  border-radius: 12px;
+}
+
+.energy-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-2, 0.75rem);
+  margin-bottom: var(--space-3, 1rem);
+}
+
+.energy-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2, 0.75rem);
+  background: oklch(0.14 0.01 250 / 0.5);
+  border: 1px solid var(--line-soft, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
+}
+
+.energy-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.energy-card strong {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.25rem;
+  color: var(--text, rgba(255,255,255,0.9));
+}
+
+.energy-unit {
+  font-size: 0.7rem;
+  color: var(--text-muted, rgba(255,255,255,0.5));
+  margin-top: 0.25rem;
+}
+
+.energy-gen { border-left: 3px solid var(--accent, #4fc3f7); }
+.energy-load { border-left: 3px solid var(--alarm, #ef5350); }
+.energy-storage { border-left: 3px solid #66bb6a; }
+.energy-balance-indicator { border-left: 3px solid var(--text-muted, rgba(255,255,255,0.5)); }
+
+.energy-balance-section canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grid-health-section {
+  background: var(--surface, rgba(255,255,255,0.04));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.grid-health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.grid-health-card {
+  background: var(--surface, rgba(255,255,255,0.04));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.grid-health-card .health-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+}
+
+.grid-health-card strong {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary, rgba(255,255,255,0.95));
+}
+
+.grid-health-card .health-unit {
+  font-size: 0.7rem;
+  color: var(--text-muted, rgba(255,255,255,0.4));
+}
+
+.health-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--line, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0.3rem 0;
+}
+
+.health-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease, background 0.4s ease;
+  background: var(--accent, #4fc3f7);
+}
+
+.grid-health-card .health-status {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.grid-health-card[data-state="nominal"] .health-bar-fill { background: #66bb6a; }
+.grid-health-card[data-state="warning"] .health-bar-fill { background: var(--warning, #ffa726); }
+.grid-health-card[data-state="alarm"] .health-bar-fill { background: var(--alarm, #ef5350); }
+
+@media (max-width: 720px) {
+  .grid-health-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .grid-health-grid { grid-template-columns: 1fr; }
+  .energy-balance-grid { grid-template-columns: 1fr; }
+  .grid-health-card strong { font-size: 1.35rem; }
+}

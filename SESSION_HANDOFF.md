@@ -54,7 +54,7 @@ smart-grid-detector/
 - Repo: `github.com/KnigguKniggu-droid/Smart-Grid-Detector` (public)
 - Git user: `KnigguKniggu-droid` / `KnigguKniggu-droid@users.noreply.github.com`
 - Branch protection on `main` requires: `Python tests`, `Node checks`, `Dependency audit`
-- Vercel project: `<redacted>/grid-sentinel-live`
+- Vercel project: `<vercel-account>/grid-sentinel-live`
 - Live URL: https://grid-sentinel-live.vercel.app/
 
 ## Core detector details
