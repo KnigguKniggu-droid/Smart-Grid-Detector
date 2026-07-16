@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from "@playwright/test";
 
-const DASHBOARD_URL = "https://grid-sentinel-live.vercel.app/";
+const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://grid-sentinel-live.vercel.app/";
 
 test.describe("Smart Grid Dashboard E2E Audit", () => {
   test("loads with zero console errors and renders all panels", async ({

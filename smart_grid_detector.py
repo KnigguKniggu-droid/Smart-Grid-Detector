@@ -2545,6 +2545,8 @@ def run_drift_scenario(
 
 
 GRID_SECTIONS: Final[int] = 8
+TOTAL_CUSTOMERS: Final[int] = 1000
+SECTION_CUSTOMERS: Final[list[int]] = [110, 120, 130, 140, 130, 120, 110, 140]
 # Synthetic demonstration sector. The coordinates are simulated and carry no
 # real-world meaning; they exist so dispatches carry a well-formed EPSG:4326
 # vector as an integration example.
@@ -2889,14 +2891,14 @@ def run_fdi_scenario(
 
 class GridStressIndicator:
     """Grid stress indicator adapted from the paper's nervousness model.
-    
+
     The paper uses a linear interpolation formula for psychological state:
     N(s) = N(s-1) + (N_max - N(s-1)) * λ(s)
-    
+
     For grid context, we adapt this to model stress levels that accumulate
     during cascading failures and decay during normal operation.
     """
-    
+
     def __init__(self, max_stress: float = 1.0, accumulation_rate: float = 0.3, 
                  decay_rate: float = 0.1):
         self.max_stress = max_stress
@@ -2904,7 +2906,7 @@ class GridStressIndicator:
         self.decay_rate = decay_rate
         self.current_stress = 0.0
         self.stress_history = []
-        
+
     def update(self, event_type: str, severity: float = 1.0) -> float:
         """Update stress based on event type and severity."""
         if event_type == "fault":
@@ -2920,10 +2922,10 @@ class GridStressIndicator:
                 0.0,
                 self.current_stress - self.current_stress * self.decay_rate * severity
             )
-        
+
         self.stress_history.append(self.current_stress)
         return self.current_stress
-    
+
     def get_stress_level(self) -> str:
         """Return categorical stress level."""
         if self.current_stress < 0.3:
@@ -2932,7 +2934,7 @@ class GridStressIndicator:
             return "MEDIUM"
         else:
             return "HIGH"
-    
+
     def get_stress_score(self) -> float:
         """Return numeric stress score (0-1)."""
         return round(self.current_stress, 4)
@@ -2940,30 +2942,30 @@ class GridStressIndicator:
 
 class SectionBehavioralModel:
     """Per-section behavioral model adapted from the paper's individual model layer.
-    
+
     Each section has different characteristics that affect its response to faults
     and recovery operations, similar to how each vehicle in the paper has different
     driver behavior parameters.
     """
-    
+
     def __init__(self, section_id: int, customer_count: int, 
                  base_response_time: float = 0.5):
         self.section_id = section_id
         self.customer_count = customer_count
         self.base_response_time = base_response_time
-        
+
         # Behavioral parameters (randomly initialized per section)
         random.seed(RANDOM_SEED + section_id)
         self.resilience_factor = random.uniform(0.8, 1.2)  # How resilient to faults
         self.recovery_speed = random.uniform(0.8, 1.2)  # How fast to recover
         self.coordination_weight = random.uniform(0.5, 1.0)  # How much to coordinate
         self.stress_sensitivity = random.uniform(0.8, 1.2)  # How much stress affects
-        
+
     def get_response_time(self, stress_level: float) -> float:
         """Calculate response time based on stress and behavioral factors."""
         stress_factor = 1.0 + (stress_level * self.stress_sensitivity)
         return self.base_response_time * stress_factor / self.recovery_speed
-    
+
     def get_isolation_priority(self, anomaly_severity: float) -> int:
         """Calculate isolation priority (lower = more urgent)."""
         # Higher severity and lower resilience = more urgent
@@ -2978,30 +2980,30 @@ class SectionBehavioralModel:
 
 class MultiLevelDispatchFramework:
     """Multi-level dispatch decision framework adapted from the paper's 4-layer architecture.
-    
+
     Paper's 4 layers:
     1. Decision Model Layer - High-level strategic decisions
     2. Game Model Layer - Multi-agent interaction and coordination
     3. Individual Model Layer - Per-agent behavioral decisions
     4. Transform Model Layer - Physical transformation/actuation
-    
+
     Our adaptation:
     1. Strategic Layer - Grid-wide emergency response strategy
     2. Coordination Layer - Section-to-section interaction and resource allocation
     3. Individual Layer - Per-section behavioral decisions
     4. Actuation Layer - Physical breaker/reroute operations
     """
-    
+
     def __init__(self, num_sections: int):
         self.num_sections = num_sections
         self.stress_indicator = GridStressIndicator()
         self.sections = [
-            SectionBehavioralModel(i, 120 + 10 * i) 
+            SectionBehavioralModel(i, SECTION_CUSTOMERS[i]) 
             for i in range(num_sections)
         ]
         self.global_strategy = "isolate_and_reroute"
         self.coordination_matrix = self._build_coordination_matrix()
-        
+
     def _build_coordination_matrix(self) -> list[list[float]]:
         """Build section coordination matrix (who coordinates with whom)."""
         matrix = [[0.0] * self.num_sections for _ in range(self.num_sections)]
@@ -3017,7 +3019,7 @@ class MultiLevelDispatchFramework:
                     else:
                         matrix[i][j] = 0.1  # Weak coordination
         return matrix
-    
+
     def strategic_decision(self, alert_count: int, stress_level: str) -> str:
         """Layer 1: Strategic decision based on overall grid state."""
         if stress_level == "HIGH" or alert_count > self.num_sections // 2:
@@ -3026,11 +3028,11 @@ class MultiLevelDispatchFramework:
             return "isolate_and_reroute"
         else:
             return "single_section_isolation"
-    
+
     def coordination_decision(self, sections: list[int], strategy: str) -> dict[int, list[int]]:
         """Layer 2: Coordination decisions between sections."""
         coordination_plan = {s: [] for s in sections}
-        
+
         if strategy == "cascade_protection":
             # All sections coordinate with all others
             for s in sections:
@@ -3047,15 +3049,15 @@ class MultiLevelDispatchFramework:
             # Single section isolation - minimal coordination
             for s in sections:
                 coordination_plan[s] = []
-        
+
         return coordination_plan
-    
+
     def individual_decision(self, section_id: int, anomaly_type: str, 
                            error_magnitude: float, thd_value: float) -> dict:
         """Layer 3: Individual section decision based on behavioral model."""
         section = self.sections[section_id]
         stress = self.stress_indicator.get_stress_score()
-        
+
         # Determine action based on anomaly type and severity
         if anomaly_type in ("transient", "sag"):
             action = "isolate"
@@ -3066,11 +3068,11 @@ class MultiLevelDispatchFramework:
         else:
             action = "inspect"
             response_time = section.get_response_time(stress) * 2.0
-        
+
         # Calculate priority
         severity = min(1.0, error_magnitude / 0.1)  # Normalize error to 0-1
         priority = section.get_isolation_priority(severity)
-        
+
         return {
             "section_id": section_id,
             "action": action,
@@ -3079,15 +3081,15 @@ class MultiLevelDispatchFramework:
             "coordination_needed": section.coordination_weight > 0.7,
             "customers_affected": section.customer_count,
         }
-    
+
     def actuation_decision(self, individual_decisions: list[dict]) -> list[dict]:
         """Layer 4: Physical actuation decisions (breaker operations, rerouting)."""
         actuations = []
-        
+
         for decision in individual_decisions:
             section_id = decision["section_id"]
             action = decision["action"]
-            
+
             if action == "isolate":
                 actuations.append({
                     "section": f"SEC-{section_id:02d}",
@@ -3118,24 +3120,24 @@ class MultiLevelDispatchFramework:
                     "response_time": decision["response_time"] * 2.0,
                     "priority": decision["priority"],
                 })
-        
+
         return actuations
-    
+
     def execute_decision_cycle(self, alerts: list[dict]) -> dict:
         """Execute complete multi-level decision cycle."""
         # Layer 1: Strategic decision
         alert_count = len(alerts)
         strategy = self.strategic_decision(alert_count, 
                                           self.stress_indicator.get_stress_level())
-        
+
         # Update stress based on alert count
         if alert_count > 0:
             self.stress_indicator.update("fault", min(1.0, alert_count / self.num_sections))
-        
+
         # Layer 2: Coordination decision
         sections = [alert["section_id"] for alert in alerts]
         coordination_plan = self.coordination_decision(sections, strategy)
-        
+
         # Layer 3: Individual decisions
         individual_decisions = []
         for alert in alerts:
@@ -3146,15 +3148,15 @@ class MultiLevelDispatchFramework:
                 alert["thd_value"]
             )
             individual_decisions.append(decision)
-        
+
         # Layer 4: Actuation decisions
         actuations = self.actuation_decision(individual_decisions)
-        
+
         # Calculate recovery and update stress
         if actuations:
             recovery_time = max(a["response_time"] for a in actuations)
             self.stress_indicator.update("recovery", recovery_time / 10.0)
-        
+
         return {
             "strategy": strategy,
             "coordination_plan": coordination_plan,
@@ -3163,6 +3165,204 @@ class MultiLevelDispatchFramework:
             "stress_level": self.stress_indicator.get_stress_level(),
             "stress_score": self.stress_indicator.get_stress_score(),
         }
+
+
+class ResilienceAnalyzer:
+    """IEEE 1366 reliability indices and power-electronics quality metrics.
+
+    Computes SAIFI, SAIDI, CAIDI from interruption event arrays using a
+    fixed baseline customer pool. Also generates MPPT efficiency and
+    DQ/PLL tracking metrics for inverter-coupled grid sections.
+
+    All event parsing is defensive: missing keys, wrong types, or
+    malformed values are skipped without raising, so a partially
+    malformed event array cannot fracture the reliability calculation.
+    """
+
+    def __init__(self, total_customers: int = TOTAL_CUSTOMERS):
+        self.total_customers = max(1, int(total_customers))
+
+    @staticmethod
+    def _safe_int(value: Any, default: int = 0) -> int:
+        """Coerce a value to a non-negative int, returning default on failure."""
+        try:
+            result = int(value)
+            return result if result >= 0 else default
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _safe_float(value: Any, default: float = 0.0) -> float:
+        """Coerce a value to a finite float, returning default on failure."""
+        try:
+            result = float(value)
+            return result if math.isfinite(result) else default
+        except (TypeError, ValueError):
+            return default
+
+    def calculate_saifi(self, events: list[dict[str, Any]]) -> float:
+        """System Average Interruption Frequency Index.
+
+        SAIFI = total number of customer interruptions / total customers served.
+
+        Each event dict is expected to carry a ``customers_affected`` key.
+        Events missing the key or carrying non-numeric values are skipped.
+        """
+        total_interruptions = 0
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            customers = self._safe_int(event.get("customers_affected"))
+            if customers > 0:
+                total_interruptions += customers
+        return total_interruptions / self.total_customers
+
+    def calculate_saidi(self, events: list[dict[str, Any]]) -> float:
+        """System Average Interruption Duration Index.
+
+        SAIDI = sum of all customer interruption durations / total customers served.
+
+        Each event dict is expected to carry ``customers_affected`` and
+        ``duration_minutes`` keys. Missing or malformed values are treated
+        as zero so a single bad event cannot corrupt the aggregate.
+        """
+        customer_minutes = 0.0
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            customers = self._safe_int(event.get("customers_affected"))
+            duration = self._safe_float(event.get("duration_minutes"))
+            if customers > 0 and duration > 0:
+                customer_minutes += customers * duration
+        return customer_minutes / self.total_customers
+
+    def calculate_caidi(self, saifi: float, saidi: float) -> float:
+        """Customer Average Interruption Duration Index.
+
+        CAIDI = SAIDI / SAIFI (average restoration duration per interruption).
+        Returns 0.0 when SAIFI is zero to avoid division by zero.
+        """
+        return saidi / saifi if saifi > 0 else 0.0
+
+    def calculate_mppt_metrics(
+        self, events: list[dict[str, Any]], num_sections: int = GRID_SECTIONS,
+    ) -> dict[str, Any]:
+        """Maximum Power Point Tracking efficiency and solar mismatch metrics.
+
+        Simulates per-section MPPT efficiency, irradiance, and generation
+        values. Sections with active anomalies degrade in tracking efficiency
+        and show generation/irradiance mismatch.
+        """
+        faulted_sections: set[int] = set()
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            section = self._safe_int(event.get("section_id"), -1)
+            if 0 <= section < num_sections:
+                faulted_sections.add(section)
+
+        sections_data: list[dict[str, Any]] = []
+        efficiencies: list[float] = []
+        for section in range(num_sections):
+            random.seed(RANDOM_SEED + section * 17)
+            base_irradiance = random.uniform(800, 1000)
+            base_generation = base_irradiance * 0.18  # 18% panel efficiency
+            if section in faulted_sections:
+                mppt_eff = random.uniform(0.88, 0.94)
+                irradiance = base_irradiance * random.uniform(0.6, 0.8)
+                generation = irradiance * 0.18 * mppt_eff
+                mismatch = abs(generation - base_generation * mppt_eff)
+            else:
+                mppt_eff = random.uniform(0.97, 0.995)
+                irradiance = base_irradiance
+                generation = irradiance * 0.18 * mppt_eff
+                mismatch = abs(generation - irradiance * 0.18 * mppt_eff)
+            efficiencies.append(mppt_eff)
+            sections_data.append({
+                "section": f"SEC-{section:02d}",
+                "mppt_efficiency": round(mppt_eff, 4),
+                "irradiance_w_m2": round(irradiance, 2),
+                "generation_kw": round(generation / 1000, 4),
+                "mismatch_kw": round(mismatch / 1000, 4),
+                "status": "degraded" if section in faulted_sections else "optimal",
+            })
+
+        avg_eff = sum(efficiencies) / len(efficiencies) if efficiencies else 0.0
+        return {
+            "sections": sections_data,
+            "aggregate_mppt_efficiency": round(avg_eff, 4),
+            "faulted_sections": sorted(f"SEC-{s:02d}" for s in faulted_sections),
+            "total_generation_kw": round(
+                sum(s["generation_kw"] for s in sections_data), 4,
+            ),
+            "total_mismatch_kw": round(
+                sum(s["mismatch_kw"] for s in sections_data), 4,
+            ),
+        }
+
+    def calculate_dq_pll_metrics(
+        self, events: list[dict[str, Any]], num_sections: int = GRID_SECTIONS,
+    ) -> dict[str, Any]:
+        """DQ current ripple and PLL synchronization tracking metrics.
+
+        Simulates per-section direct-quadrature current ripple and PLL
+        phase tracking error. Faulted sections exhibit higher ripple
+        and larger PLL angle deviations.
+        """
+        faulted_sections: set[int] = set()
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            section = self._safe_int(event.get("section_id"), -1)
+            if 0 <= section < num_sections:
+                faulted_sections.add(section)
+
+        sections_data: list[dict[str, Any]] = []
+        ripple_values: list[float] = []
+        pll_errors: list[float] = []
+        for section in range(num_sections):
+            random.seed(RANDOM_SEED + section * 23)
+            if section in faulted_sections:
+                d_ripple = random.uniform(0.15, 0.35)
+                q_ripple = random.uniform(0.12, 0.28)
+                pll_error = random.uniform(2.0, 8.0)
+                pll_locked = pll_error < 5.0
+            else:
+                d_ripple = random.uniform(0.01, 0.04)
+                q_ripple = random.uniform(0.01, 0.03)
+                pll_error = random.uniform(0.1, 1.0)
+                pll_locked = True
+            total_ripple = math.sqrt(d_ripple ** 2 + q_ripple ** 2)
+            ripple_values.append(total_ripple)
+            pll_errors.append(pll_error)
+            sections_data.append({
+                "section": f"SEC-{section:02d}",
+                "d_axis_ripple_a": round(d_ripple, 4),
+                "q_axis_ripple_a": round(q_ripple, 4),
+                "total_ripple_a": round(total_ripple, 4),
+                "pll_error_deg": round(pll_error, 4),
+                "pll_locked": pll_locked,
+                "status": "unlocked" if not pll_locked else (
+                    "degraded" if section in faulted_sections else "nominal"
+                ),
+            })
+
+        return {
+            "sections": sections_data,
+            "aggregate_ripple_a": round(
+                sum(ripple_values) / len(ripple_values) if ripple_values else 0.0, 4,
+            ),
+            "aggregate_pll_error_deg": round(
+                sum(pll_errors) / len(pll_errors) if pll_errors else 0.0, 4,
+            ),
+            "unlocked_sections": sorted(
+                f"SEC-{s:02d}" for s in faulted_sections
+                if not sections_data[s]["pll_locked"]
+            ),
+            "ripple_threshold_a": 0.05,
+            "pll_lock_threshold_deg": 5.0,
+        }
+
 
 
 def run_self_healing_simulation(
@@ -3197,7 +3397,7 @@ def run_self_healing_simulation(
     }
     detected_assets: list[dict[str, Any]] = []
     dispatches: list[dict[str, Any]] = []
-    section_customers = [120 + 10 * index for index in range(GRID_SECTIONS)]
+    section_customers = list(SECTION_CUSTOMERS)
     sections_isolated: set[int] = set()
 
     flagged = torch.nonzero(predictions, as_tuple=False).flatten().tolist()
@@ -3260,16 +3460,32 @@ def run_self_healing_simulation(
         section_customers[section] for section in sections_isolated
     )
     total_customers = sum(section_customers)
-    total_interruptions = len(sections_isolated)
-    # IEEE 1366 reliability indices: SAIFI, SAIDI, CAIDI
-    # SAIFI = total customer interruptions / total customers served
-    # SAIDI = sum(customer-minutes interrupted) / total customers served
-    # CAIDI = SAIDI / SAIFI (average restoration duration per interruption)
-    saifi = total_interruptions / max(total_customers, 1)
+
+    # Build interruption events for ResilienceAnalyzer
     restoration_seconds = 0.5 + 2.0  # isolation + reroute
-    customer_minutes = customers_isolated * restoration_seconds
-    saidi = customer_minutes / max(total_customers, 1)
-    caidi = customer_minutes / max(customers_isolated, 1) if customers_isolated else 0.0
+    restoration_minutes = restoration_seconds / 60.0
+    interruption_events: list[dict[str, Any]] = []
+    for section in sections_isolated:
+        interruption_events.append({
+            "section_id": section,
+            "customers_affected": section_customers[section],
+            "duration_minutes": restoration_minutes,
+        })
+
+    # IEEE 1366 reliability indices via ResilienceAnalyzer
+    analyzer = ResilienceAnalyzer(total_customers=total_customers)
+    saifi = analyzer.calculate_saifi(interruption_events)
+    saidi = analyzer.calculate_saidi(interruption_events)
+    caidi = analyzer.calculate_caidi(saifi, saidi)
+
+    # MPPT and DQ/PLL power-electronics quality metrics
+    mppt_metrics = analyzer.calculate_mppt_metrics(
+        interruption_events, num_sections=GRID_SECTIONS,
+    )
+    dq_pll_metrics = analyzer.calculate_dq_pll_metrics(
+        interruption_events, num_sections=GRID_SECTIONS,
+    )
+
     summary = {
         "sections": GRID_SECTIONS,
         "alerts_dispatched": len(dispatches),
@@ -3289,9 +3505,13 @@ def run_self_healing_simulation(
             "SAIDI": round(saidi, 6),
             "CAIDI": round(caidi, 2),
             "total_customers_served": total_customers,
-            "total_customer_interruptions": total_interruptions,
-            "customer_minutes_interrupted": round(customer_minutes, 2),
+            "total_customer_interruptions": len(sections_isolated),
+            "customer_minutes_interrupted": round(
+                customers_isolated * restoration_minutes, 2,
+            ),
         },
+        "mppt_metrics": mppt_metrics,
+        "dq_pll_metrics": dq_pll_metrics,
         "artifact": "grid_dispatches.json",
     }
     artifact = {
@@ -3299,6 +3519,8 @@ def run_self_healing_simulation(
         "detected_assets": detected_assets,
         "operational_dispatches": dispatches,
         "geospatial_reference": SYNTHETIC_SECTOR,
+        "mppt_metrics": mppt_metrics,
+        "dq_pll_metrics": dq_pll_metrics,
         "simulation_disclaimer": (
             "Synthetic self-healing simulation. Sections, customers, "
             "coordinates, and response times are simulated for workflow "
@@ -3307,26 +3529,26 @@ def run_self_healing_simulation(
     }
     # Integrate multi-level dispatch decision framework
     framework = MultiLevelDispatchFramework(GRID_SECTIONS)
-    
+
     # Prepare alerts for the framework
     alerts_for_framework = []
-    for i, (index, order) in enumerate(zip(flagged, range(1, len(flagged) + 1))):
+    for index in flagged:
         source_index = int(bundle.test_source_indices[index])
         section = source_index % GRID_SECTIONS
         anomaly_type = bundle.test_anomaly_types[index]
         error_magnitude = float(errors[index])
         thd_value = float(thd_values[index])
-        
+
         alerts_for_framework.append({
             "section_id": section,
             "anomaly_type": anomaly_type,
             "error_magnitude": error_magnitude,
             "thd_value": thd_value,
         })
-    
+
     # Execute multi-level decision cycle
     decision_result = framework.execute_decision_cycle(alerts_for_framework)
-    
+
     # Add grid stress indicator to summary
     summary["grid_stress"] = {
         "level": decision_result["stress_level"],
@@ -3334,10 +3556,10 @@ def run_self_healing_simulation(
         "strategy": decision_result["strategy"],
         "coordination_sections": len(decision_result["coordination_plan"]),
     }
-    
+
     # Add individual decisions to artifact
     artifact["multi_level_decisions"] = decision_result
-    
+
     print(
         f"[HEAL] dispatches={len(dispatches)} sections="
         f"{len(sections_isolated)}/{GRID_SECTIONS} "
@@ -3345,7 +3567,10 @@ def run_self_healing_simulation(
         f"high={summary['priorities']['HIGH']} "
         f"medium={summary['priorities']['MEDIUM']} "
         f"stress={summary['grid_stress']['level']} "
-        f"strategy={summary['grid_stress']['strategy']}"
+        f"strategy={summary['grid_stress']['strategy']} "
+        f"SAIFI={saifi:.6f} SAIDI={saidi:.6f} "
+        f"MPPT_eff={mppt_metrics['aggregate_mppt_efficiency']:.4f} "
+        f"PLL_unlocked={len(dq_pll_metrics['unlocked_sections'])}"
     )
     return summary, artifact
 

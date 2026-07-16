@@ -843,5 +843,120 @@ class AdversarialAndSensorFailureTests(unittest.TestCase):
         self.assertEqual(int(fdi["joint"].sum()), 0)
 
 
+class ResilienceAnalyzerTests(unittest.TestCase):
+    """IEEE 1366 SAIFI/SAIDI and power-electronics quality metrics."""
+
+    def setUp(self) -> None:
+        self.analyzer = detector.ResilienceAnalyzer(
+            total_customers=detector.TOTAL_CUSTOMERS,
+        )
+        self.assertEqual(detector.TOTAL_CUSTOMERS, 1000)
+        self.assertEqual(sum(detector.SECTION_CUSTOMERS), 1000)
+
+    def test_saifi_calculates_interruptions_per_customer(self) -> None:
+        events = [
+            {"customers_affected": 130, "duration_minutes": 0.04, "section_id": 2},
+            {"customers_affected": 140, "duration_minutes": 0.04, "section_id": 3},
+        ]
+        saifi = self.analyzer.calculate_saifi(events)
+        self.assertAlmostEqual(saifi, 270 / 1000, places=6)
+
+    def test_saidi_calculates_customer_minutes_per_customer(self) -> None:
+        events = [
+            {"customers_affected": 130, "duration_minutes": 0.04, "section_id": 2},
+            {"customers_affected": 140, "duration_minutes": 0.04, "section_id": 3},
+        ]
+        saidi = self.analyzer.calculate_saidi(events)
+        expected = (130 * 0.04 + 140 * 0.04) / 1000
+        self.assertAlmostEqual(saidi, expected, places=6)
+
+    def test_caidi_is_saidi_over_saifi(self) -> None:
+        events = [
+            {"customers_affected": 100, "duration_minutes": 0.05, "section_id": 0},
+        ]
+        saifi = self.analyzer.calculate_saifi(events)
+        saidi = self.analyzer.calculate_saidi(events)
+        caidi = self.analyzer.calculate_caidi(saifi, saidi)
+        self.assertAlmostEqual(caidi, saidi / saifi, places=4)
+
+    def test_caidi_zero_saifi_returns_zero(self) -> None:
+        caidi = self.analyzer.calculate_caidi(0.0, 0.0)
+        self.assertEqual(caidi, 0.0)
+
+    def test_malformed_events_are_skipped_safely(self) -> None:
+        events = [
+            {"customers_affected": "bad", "duration_minutes": 0.04},
+            {"customers_affected": 100, "duration_minutes": "bad"},
+            {"missing_keys": True},
+            "not a dict",
+            None,
+            {"customers_affected": 120, "duration_minutes": 0.04, "section_id": 1},
+        ]
+        saifi = self.analyzer.calculate_saifi(events)
+        saidi = self.analyzer.calculate_saidi(events)
+        self.assertAlmostEqual(saifi, (100 + 120) / 1000, places=6)
+        self.assertAlmostEqual(saidi, 120 * 0.04 / 1000, places=6)
+
+    def test_empty_events_yield_zero_indices(self) -> None:
+        self.assertEqual(self.analyzer.calculate_saifi([]), 0.0)
+        self.assertEqual(self.analyzer.calculate_saidi([]), 0.0)
+
+    def test_mppt_metrics_have_per_section_data(self) -> None:
+        events = [{"customers_affected": 130, "duration_minutes": 0.04, "section_id": 2}]
+        mppt = self.analyzer.calculate_mppt_metrics(events)
+        self.assertEqual(len(mppt["sections"]), detector.GRID_SECTIONS)
+        for section in mppt["sections"]:
+            self.assertIn("mppt_efficiency", section)
+            self.assertIn("irradiance_w_m2", section)
+            self.assertIn("generation_kw", section)
+            self.assertIn("mismatch_kw", section)
+            self.assertIn("status", section)
+        self.assertGreater(mppt["aggregate_mppt_efficiency"], 0.0)
+        self.assertLess(mppt["aggregate_mppt_efficiency"], 1.0)
+        self.assertIn("SEC-02", mppt["faulted_sections"])
+
+    def test_dq_pll_metrics_have_per_section_data(self) -> None:
+        events = [{"customers_affected": 130, "duration_minutes": 0.04, "section_id": 2}]
+        dq_pll = self.analyzer.calculate_dq_pll_metrics(events)
+        self.assertEqual(len(dq_pll["sections"]), detector.GRID_SECTIONS)
+        for section in dq_pll["sections"]:
+            self.assertIn("d_axis_ripple_a", section)
+            self.assertIn("q_axis_ripple_a", section)
+            self.assertIn("total_ripple_a", section)
+            self.assertIn("pll_error_deg", section)
+            self.assertIn("pll_locked", section)
+        self.assertGreaterEqual(dq_pll["aggregate_ripple_a"], 0.0)
+        self.assertGreaterEqual(dq_pll["aggregate_pll_error_deg"], 0.0)
+        self.assertIn("ripple_threshold_a", dq_pll)
+        self.assertIn("pll_lock_threshold_deg", dq_pll)
+
+    def test_self_healing_summary_includes_reliability_and_power_metrics(self) -> None:
+        detector.set_deterministic_seed(42)
+        bundle = detector._generate_waveform_bundle(2000, 512, seed=42)
+        model = detector.GridWaveformAutoencoder(sequence_length=512)
+        normal_train = bundle.train_waveforms[bundle.train_labels == 0].contiguous()
+        calibration: dict = {}
+        threshold = detector.train_autoencoder(
+            model, normal_train, torch.device("cpu"), epochs=1,
+            calibration=calibration,
+        )
+        diagnostics: dict = {}
+        detector.validate_detector(
+            model, bundle.test_waveforms, bundle.test_labels,
+            threshold, torch.device("cpu"), diagnostics=diagnostics,
+        )
+        summary, artifact = detector.run_self_healing_simulation(
+            bundle, diagnostics, threshold,
+        )
+        ri = summary["reliability_indices"]
+        self.assertEqual(ri["total_customers_served"], 1000)
+        self.assertGreaterEqual(ri["SAIFI"], 0.0)
+        self.assertGreaterEqual(ri["SAIDI"], 0.0)
+        self.assertIn("mppt_metrics", summary)
+        self.assertIn("dq_pll_metrics", summary)
+        self.assertIn("mppt_metrics", artifact)
+        self.assertIn("dq_pll_metrics", artifact)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -585,15 +585,52 @@ function renderResiliencePanel(data) {
   const edge = data.edge_benchmark;
   const drift = data.drift_monitor;
   const fdi = data.fdi_resilience;
-  if (!probes && !edge && !drift && !fdi) {
+  const gr = data.grid_response;
+  const ri = gr && gr.reliability_indices;
+  if (!probes && !edge && !drift && !fdi && !ri) {
     panel.hidden = true;
     return;
   }
   panelShell(
     panel,
-    "Adversarial & operational resilience",
-    "Boundary probes, edge quantization, drift, and false-data-injection.",
+    "Adversarial and operational resilience",
+    "IEEE 1366 reliability indices, boundary probes, edge quantization, drift, and false-data-injection.",
   );
+
+  if (ri) {
+    const relRow = el("div", null, "resilience-stat-row");
+    const saifiCard = el("div", null, "resilience-stat");
+    saifiCard.appendChild(el("span", "SAIFI"));
+    saifiCard.appendChild(el("strong", ri.SAIFI.toFixed(6), "is-cyan"));
+    relRow.appendChild(saifiCard);
+    const saidiCard = el("div", null, "resilience-stat");
+    saidiCard.appendChild(el("span", "SAIDI"));
+    saidiCard.appendChild(el("strong", ri.SAIDI.toFixed(6), "is-cyan"));
+    relRow.appendChild(saidiCard);
+    const caidiCard = el("div", null, "resilience-stat");
+    caidiCard.appendChild(el("span", "CAIDI"));
+    caidiCard.appendChild(el("strong", String(ri.CAIDI.toFixed(2)), "is-amber"));
+    relRow.appendChild(caidiCard);
+    const custCard = el("div", null, "resilience-stat");
+    custCard.appendChild(el("span", "Customers served"));
+    custCard.appendChild(el("strong", String(ri.total_customers_served), ""));
+    relRow.appendChild(custCard);
+    panel.appendChild(relRow);
+
+    panel.appendChild(el("h4", "Reliability index breakdown", "resilience-subhead"));
+    panel.appendChild(
+      buildTable(
+        ["Metric", "Value", "Unit"],
+        [
+          ["SAIFI", ri.SAIFI.toFixed(6), "interruptions/customer"],
+          ["SAIDI", ri.SAIDI.toFixed(6), "customer-minutes/customer"],
+          ["CAIDI", ri.CAIDI.toFixed(2), "minutes/interruption"],
+          ["Total interruptions", String(ri.total_customer_interruptions), "events"],
+          ["Customer-minutes interrupted", String(ri.customer_minutes_interrupted), "min"],
+        ],
+      ),
+    );
+  }
 
   if (probes && Array.isArray(probes.probes)) {
     panel.appendChild(el("h4", "Decision-boundary probes", "resilience-subhead"));
@@ -764,11 +801,52 @@ function renderDispatchPanel() {
   const dispatches = artifact.operational_dispatches;
   panelShell(
     panel,
-    "Self-healing dispatch",
+    "Self-healing dispatch and MPPT tracking",
     `${dispatches.length} prioritized work orders across a synthetic ` +
       `${(artifact.geospatial_reference && "8") || "?"}-section feeder. ` +
-      "Simulated response, not a live control system.",
+      "MPPT efficiency and solar generation/irradiance mismatch shown below.",
   );
+
+  const mppt = artifact.mppt_metrics;
+  if (mppt) {
+    const mpptRow = el("div", null, "resilience-stat-row");
+    const effCard = el("div", null, "resilience-stat");
+    effCard.appendChild(el("span", "Aggregate MPPT eff."));
+    effCard.appendChild(el("strong", pct(mppt.aggregate_mppt_efficiency, 2), "is-cyan"));
+    mpptRow.appendChild(effCard);
+    const genCard = el("div", null, "resilience-stat");
+    genCard.appendChild(el("span", "Total generation"));
+    genCard.appendChild(el("strong", `${mppt.total_generation_kw.toFixed(2)} kW`, "is-green"));
+    mpptRow.appendChild(genCard);
+    const misCard = el("div", null, "resilience-stat");
+    misCard.appendChild(el("span", "Total mismatch"));
+    const misCls = mppt.total_mismatch_kw > 0.5 ? "is-alarm" : "is-warn";
+    misCard.appendChild(el("strong", `${mppt.total_mismatch_kw.toFixed(3)} kW`, misCls));
+    mpptRow.appendChild(misCard);
+    const fltCard = el("div", null, "resilience-stat");
+    fltCard.appendChild(el("span", "Degraded sections"));
+    fltCard.appendChild(el("strong", String(mppt.faulted_sections.length), "is-amber"));
+    mpptRow.appendChild(fltCard);
+    panel.appendChild(mpptRow);
+
+    if (Array.isArray(mppt.sections)) {
+      panel.appendChild(el("h4", "Per-section MPPT detail", "resilience-subhead"));
+      panel.appendChild(
+        buildTable(
+          ["Section", "MPPT eff.", "Irradiance", "Generation", "Mismatch", "Status"],
+          mppt.sections.map((s) => [
+            s.section,
+            pct(s.mppt_efficiency, 2),
+            `${s.irradiance_w_m2.toFixed(1)} W/m2`,
+            `${s.generation_kw.toFixed(3)} kW`,
+            `${s.mismatch_kw.toFixed(4)} kW`,
+            { text: s.status, className: s.status === "optimal" ? "is-ok" : "is-warn" },
+          ]),
+        ),
+      );
+    }
+  }
+
   const priorityClass = (priority) =>
     priority === "CRITICAL" ? "is-alarm" : priority === "HIGH" ? "is-warn" : "";
   if (artifact.detected_assets.length) {
@@ -912,6 +990,43 @@ function renderGridResponsePanel(gridResponse) {
     panel.appendChild(
       el("p", gridResponse.sections_isolated.join(", "), "resilience-card-note"),
     );
+  }
+
+  const dqPll = gridResponse.dq_pll_metrics;
+  if (dqPll) {
+    const dqRow = el("div", null, "resilience-stat-row");
+    const rippleCard = el("div", null, "resilience-stat");
+    rippleCard.appendChild(el("span", "Avg ripple"));
+    const rippleCls = dqPll.aggregate_ripple_a > dqPll.ripple_threshold_a ? "is-alarm" : "is-ok";
+    rippleCard.appendChild(el("strong", `${dqPll.aggregate_ripple_a.toFixed(4)} A`, rippleCls));
+    dqRow.appendChild(rippleCard);
+    const pllCard = el("div", null, "resilience-stat");
+    pllCard.appendChild(el("span", "Avg PLL error"));
+    const pllCls = dqPll.aggregate_pll_error_deg > dqPll.pll_lock_threshold_deg ? "is-alarm" : "is-ok";
+    pllCard.appendChild(el("strong", `${dqPll.aggregate_pll_error_deg.toFixed(2)} deg`, pllCls));
+    dqRow.appendChild(pllCard);
+    const unlockCard = el("div", null, "resilience-stat");
+    unlockCard.appendChild(el("span", "Unlocked sections"));
+    unlockCard.appendChild(el("strong", String(dqPll.unlocked_sections.length), "is-amber"));
+    dqRow.appendChild(unlockCard);
+    panel.appendChild(dqRow);
+
+    if (Array.isArray(dqPll.sections)) {
+      panel.appendChild(el("h4", "Per-section DQ current and PLL tracking", "resilience-subhead"));
+      panel.appendChild(
+        buildTable(
+          ["Section", "D ripple", "Q ripple", "Total ripple", "PLL error", "PLL lock"],
+          dqPll.sections.map((s) => [
+            s.section,
+            `${s.d_axis_ripple_a.toFixed(4)} A`,
+            `${s.q_axis_ripple_a.toFixed(4)} A`,
+            `${s.total_ripple_a.toFixed(4)} A`,
+            `${s.pll_error_deg.toFixed(2)} deg`,
+            { text: s.pll_locked ? "locked" : "UNLOCKED", className: s.pll_locked ? "is-ok" : "is-alarm" },
+          ]),
+        ),
+      );
+    }
   }
 }
 

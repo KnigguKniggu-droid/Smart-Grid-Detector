@@ -288,140 +288,140 @@
       "target_node": "NODE_1929",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-01 isolates SEC-01; tie switch TIE-01-02 restores 130 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-01 isolates SEC-01; tie switch TIE-01-02 restores 120 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_002",
       "target_node": "NODE_0493",
       "priority": "HIGH",
       "action_required": "Inspect surge arresters and reclose once the transient source is confirmed cleared.",
-      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 120 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_003",
       "target_node": "NODE_0275",
       "priority": "HIGH",
       "action_required": "Inspect surge arresters and reclose once the transient source is confirmed cleared.",
-      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 140 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_004",
       "target_node": "NODE_0491",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 140 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_005",
       "target_node": "NODE_0155",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 140 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_006",
       "target_node": "NODE_0818",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-02 isolates SEC-02; tie switch TIE-02-03 restores 140 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-02 isolates SEC-02; tie switch TIE-02-03 restores 130 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_007",
       "target_node": "NODE_1488",
       "priority": "MEDIUM",
       "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
-      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 120 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 110 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_008",
       "target_node": "NODE_1688",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 120 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 110 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_009",
       "target_node": "NODE_1089",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-01 isolates SEC-01; tie switch TIE-01-02 restores 130 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-01 isolates SEC-01; tie switch TIE-01-02 restores 120 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_010",
       "target_node": "NODE_1476",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-04 isolates SEC-04; tie switch TIE-04-05 restores 160 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-04 isolates SEC-04; tie switch TIE-04-05 restores 130 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_011",
       "target_node": "NODE_1803",
       "priority": "CRITICAL",
       "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
-      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 150 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-03 isolates SEC-03; tie switch TIE-03-04 restores 140 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_012",
       "target_node": "NODE_1605",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 120 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_013",
       "target_node": "NODE_1458",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-02 isolates SEC-02; tie switch TIE-02-03 restores 140 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-02 isolates SEC-02; tie switch TIE-02-03 restores 130 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_014",
       "target_node": "NODE_1733",
       "priority": "CRITICAL",
       "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
-      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 120 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_015",
       "target_node": "NODE_0303",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-07 isolates SEC-07; tie switch TIE-07-00 restores 190 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-07 isolates SEC-07; tie switch TIE-07-00 restores 140 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_016",
       "target_node": "NODE_1524",
       "priority": "CRITICAL",
       "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
-      "risk_mitigation": "Breaker BRK-04 isolates SEC-04; tie switch TIE-04-05 restores 160 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-04 isolates SEC-04; tie switch TIE-04-05 restores 130 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_017",
       "target_node": "NODE_1072",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 120 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-00 isolates SEC-00; tie switch TIE-00-01 restores 110 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_018",
       "target_node": "NODE_1006",
       "priority": "CRITICAL",
       "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
-      "risk_mitigation": "Breaker BRK-06 isolates SEC-06; tie switch TIE-06-07 restores 180 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-06 isolates SEC-06; tie switch TIE-06-07 restores 110 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_019",
       "target_node": "NODE_1949",
       "priority": "HIGH",
       "action_required": "Dispatch a crew to inspect feeder loading and the regulator tap changer for the sagging section.",
-      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 170 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-05 isolates SEC-05; tie switch TIE-05-06 restores 120 customers outside the fault zone."
     },
     {
       "dispatch_id": "DISP_2026_020",
       "target_node": "NODE_0702",
       "priority": "CRITICAL",
       "action_required": "Locate the nonlinear load or failing power-electronic stage injecting harmonic distortion.",
-      "risk_mitigation": "Breaker BRK-06 isolates SEC-06; tie switch TIE-06-07 restores 180 customers outside the fault zone."
+      "risk_mitigation": "Breaker BRK-06 isolates SEC-06; tie switch TIE-06-07 restores 110 customers outside the fault zone."
     }
   ],
   "geospatial_reference": {
@@ -433,6 +433,175 @@
       33.48
     ],
     "synthetic": true
+  },
+  "mppt_metrics": {
+    "sections": [
+      {
+        "section": "SEC-00",
+        "mppt_efficiency": 0.8815,
+        "irradiance_w_m2": 607.77,
+        "generation_kw": 0.0964,
+        "mismatch_kw": 0.0508,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-01",
+        "mppt_efficiency": 0.936,
+        "irradiance_w_m2": 666.7,
+        "generation_kw": 0.1123,
+        "mismatch_kw": 0.03,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-02",
+        "mppt_efficiency": 0.937,
+        "irradiance_w_m2": 559.44,
+        "generation_kw": 0.0944,
+        "mismatch_kw": 0.0531,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-03",
+        "mppt_efficiency": 0.9097,
+        "irradiance_w_m2": 700.66,
+        "generation_kw": 0.1147,
+        "mismatch_kw": 0.0461,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-04",
+        "mppt_efficiency": 0.9033,
+        "irradiance_w_m2": 754.28,
+        "generation_kw": 0.1226,
+        "mismatch_kw": 0.0378,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-05",
+        "mppt_efficiency": 0.9174,
+        "irradiance_w_m2": 576.6,
+        "generation_kw": 0.0952,
+        "mismatch_kw": 0.0384,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-06",
+        "mppt_efficiency": 0.9073,
+        "irradiance_w_m2": 701.91,
+        "generation_kw": 0.1146,
+        "mismatch_kw": 0.0307,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-07",
+        "mppt_efficiency": 0.913,
+        "irradiance_w_m2": 583.67,
+        "generation_kw": 0.0959,
+        "mismatch_kw": 0.0526,
+        "status": "degraded"
+      }
+    ],
+    "aggregate_mppt_efficiency": 0.9131,
+    "faulted_sections": [
+      "SEC-00",
+      "SEC-01",
+      "SEC-02",
+      "SEC-03",
+      "SEC-04",
+      "SEC-05",
+      "SEC-06",
+      "SEC-07"
+    ],
+    "total_generation_kw": 0.8461,
+    "total_mismatch_kw": 0.3395
+  },
+  "dq_pll_metrics": {
+    "sections": [
+      {
+        "section": "SEC-00",
+        "d_axis_ripple_a": 0.2779,
+        "q_axis_ripple_a": 0.124,
+        "total_ripple_a": 0.3043,
+        "pll_error_deg": 3.6502,
+        "pll_locked": true,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-01",
+        "d_axis_ripple_a": 0.2329,
+        "q_axis_ripple_a": 0.166,
+        "total_ripple_a": 0.2861,
+        "pll_error_deg": 7.0683,
+        "pll_locked": false,
+        "status": "unlocked"
+      },
+      {
+        "section": "SEC-02",
+        "d_axis_ripple_a": 0.2295,
+        "q_axis_ripple_a": 0.1503,
+        "total_ripple_a": 0.2743,
+        "pll_error_deg": 7.4146,
+        "pll_locked": false,
+        "status": "unlocked"
+      },
+      {
+        "section": "SEC-03",
+        "d_axis_ripple_a": 0.3154,
+        "q_axis_ripple_a": 0.154,
+        "total_ripple_a": 0.351,
+        "pll_error_deg": 7.6551,
+        "pll_locked": false,
+        "status": "unlocked"
+      },
+      {
+        "section": "SEC-04",
+        "d_axis_ripple_a": 0.2468,
+        "q_axis_ripple_a": 0.1518,
+        "total_ripple_a": 0.2898,
+        "pll_error_deg": 7.9033,
+        "pll_locked": false,
+        "status": "unlocked"
+      },
+      {
+        "section": "SEC-05",
+        "d_axis_ripple_a": 0.2723,
+        "q_axis_ripple_a": 0.156,
+        "total_ripple_a": 0.3138,
+        "pll_error_deg": 2.0985,
+        "pll_locked": true,
+        "status": "degraded"
+      },
+      {
+        "section": "SEC-06",
+        "d_axis_ripple_a": 0.1788,
+        "q_axis_ripple_a": 0.2279,
+        "total_ripple_a": 0.2897,
+        "pll_error_deg": 5.7108,
+        "pll_locked": false,
+        "status": "unlocked"
+      },
+      {
+        "section": "SEC-07",
+        "d_axis_ripple_a": 0.1682,
+        "q_axis_ripple_a": 0.2547,
+        "total_ripple_a": 0.3052,
+        "pll_error_deg": 5.6027,
+        "pll_locked": false,
+        "status": "unlocked"
+      }
+    ],
+    "aggregate_ripple_a": 0.3018,
+    "aggregate_pll_error_deg": 5.8879,
+    "unlocked_sections": [
+      "SEC-01",
+      "SEC-02",
+      "SEC-03",
+      "SEC-04",
+      "SEC-06",
+      "SEC-07"
+    ],
+    "ripple_threshold_a": 0.05,
+    "pll_lock_threshold_deg": 5.0
   },
   "simulation_disclaimer": "Synthetic self-healing simulation. Sections, customers, coordinates, and response times are simulated for workflow demonstration and carry no real-world meaning.",
   "multi_level_decisions": {
@@ -602,7 +771,7 @@
         "response_time": 0.901,
         "priority": 2,
         "coordination_needed": false,
-        "customers_affected": 130
+        "customers_affected": 120
       },
       {
         "section_id": 5,
@@ -610,7 +779,7 @@
         "response_time": 0.659,
         "priority": 3,
         "coordination_needed": true,
-        "customers_affected": 170
+        "customers_affected": 120
       },
       {
         "section_id": 3,
@@ -618,7 +787,7 @@
         "response_time": 0.643,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 150
+        "customers_affected": 140
       },
       {
         "section_id": 3,
@@ -626,7 +795,7 @@
         "response_time": 0.965,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 150
+        "customers_affected": 140
       },
       {
         "section_id": 3,
@@ -634,7 +803,7 @@
         "response_time": 0.965,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 150
+        "customers_affected": 140
       },
       {
         "section_id": 2,
@@ -642,7 +811,7 @@
         "response_time": 0.93,
         "priority": 3,
         "coordination_needed": true,
-        "customers_affected": 140
+        "customers_affected": 130
       },
       {
         "section_id": 0,
@@ -650,7 +819,7 @@
         "response_time": 0.782,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 120
+        "customers_affected": 110
       },
       {
         "section_id": 0,
@@ -658,7 +827,7 @@
         "response_time": 1.173,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 120
+        "customers_affected": 110
       },
       {
         "section_id": 1,
@@ -666,7 +835,7 @@
         "response_time": 0.901,
         "priority": 2,
         "coordination_needed": false,
-        "customers_affected": 130
+        "customers_affected": 120
       },
       {
         "section_id": 4,
@@ -674,7 +843,7 @@
         "response_time": 1.049,
         "priority": 3,
         "coordination_needed": true,
-        "customers_affected": 160
+        "customers_affected": 130
       },
       {
         "section_id": 3,
@@ -682,7 +851,7 @@
         "response_time": 0.643,
         "priority": 2,
         "coordination_needed": false,
-        "customers_affected": 150
+        "customers_affected": 140
       },
       {
         "section_id": 5,
@@ -690,7 +859,7 @@
         "response_time": 0.989,
         "priority": 3,
         "coordination_needed": true,
-        "customers_affected": 170
+        "customers_affected": 120
       },
       {
         "section_id": 2,
@@ -698,7 +867,7 @@
         "response_time": 0.93,
         "priority": 3,
         "coordination_needed": true,
-        "customers_affected": 140
+        "customers_affected": 130
       },
       {
         "section_id": 5,
@@ -706,7 +875,7 @@
         "response_time": 0.659,
         "priority": 1,
         "coordination_needed": true,
-        "customers_affected": 170
+        "customers_affected": 120
       },
       {
         "section_id": 7,
@@ -714,7 +883,7 @@
         "response_time": 1.034,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 190
+        "customers_affected": 140
       },
       {
         "section_id": 4,
@@ -722,7 +891,7 @@
         "response_time": 0.7,
         "priority": 2,
         "coordination_needed": true,
-        "customers_affected": 160
+        "customers_affected": 130
       },
       {
         "section_id": 0,
@@ -730,7 +899,7 @@
         "response_time": 1.173,
         "priority": 3,
         "coordination_needed": false,
-        "customers_affected": 120
+        "customers_affected": 110
       },
       {
         "section_id": 6,
@@ -738,7 +907,7 @@
         "response_time": 0.748,
         "priority": 2,
         "coordination_needed": true,
-        "customers_affected": 180
+        "customers_affected": 110
       },
       {
         "section_id": 5,
@@ -746,7 +915,7 @@
         "response_time": 0.659,
         "priority": 2,
         "coordination_needed": true,
-        "customers_affected": 170
+        "customers_affected": 120
       },
       {
         "section_id": 6,
@@ -754,7 +923,7 @@
         "response_time": 1.122,
         "priority": 3,
         "coordination_needed": true,
-        "customers_affected": 180
+        "customers_affected": 110
       }
     ],
     "actuations": [
@@ -942,7 +1111,7 @@
     "stress_level": "LOW",
     "stress_score": 0.2947
   },
-  "run_id": "20260715T234424Z-seed42",
-  "results_sha256": "427c549440ce83b5abca64e429355aaf8d324fa6bfd4da2fa00d013aba7391ff",
-  "source_sha256": "c1b05c757b0eadbf318e0d1703bacdea53056d17fd9c4ade8182c95022c1b3c4"
+  "run_id": "20260716T002840Z-seed42",
+  "results_sha256": "869029f15a6b7ba8d8653af7c1861d25bf9ff4a3d6d69e6d5eb7f5f7f676f71a",
+  "source_sha256": "4e8df67b6546bc47de276f11cb9ce7b5e09b57207e9d173fae241018c39b6d28"
 }

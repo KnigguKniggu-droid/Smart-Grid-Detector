@@ -538,9 +538,48 @@
             ></canvas>
             <p class="sr-only" id="roc-a11y"></p>
           </article>
-          <article class="instrument-panel resilience-card" id="resilience-panel" hidden></article>
-          <article class="instrument-panel resilience-card" id="dispatch-panel" hidden></article>
-          <article class="instrument-panel resilience-card" id="grid-response-panel" hidden></article>
+          <article class="instrument-panel resilience-card" id="resilience-panel" aria-labelledby="resilience-panel-title">
+            <h3 class="resilience-card-title" id="resilience-panel-title">Reliability indices</h3>
+            <p class="resilience-card-note">IEEE 1366 SAIFI and SAIDI metrics from the self-healing simulation.</p>
+            <div class="resilience-stat-row" id="resilience-stats-row"></div>
+            <h4 class="resilience-subhead">SAIFI and SAIDI breakdown</h4>
+            <div class="table-scroll" tabindex="0">
+              <table class="resilience-table" id="reliability-breakdown-table">
+                <thead>
+                  <tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Unit</th></tr>
+                </thead>
+                <tbody id="reliability-breakdown-body"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="instrument-panel resilience-card" id="dispatch-panel" aria-labelledby="dispatch-panel-title">
+            <h3 class="resilience-card-title" id="dispatch-panel-title">MPPT and solar tracking</h3>
+            <p class="resilience-card-note">Per-section Maximum Power Point Tracking efficiency and generation/irradiance mismatch.</p>
+            <div class="resilience-stat-row" id="mppt-stats-row"></div>
+            <h4 class="resilience-subhead">Per-section MPPT detail</h4>
+            <div class="table-scroll" tabindex="0">
+              <table class="resilience-table" id="mppt-detail-table">
+                <thead>
+                  <tr><th scope="col">Section</th><th scope="col">MPPT eff.</th><th scope="col">Irradiance</th><th scope="col">Generation</th><th scope="col">Mismatch</th><th scope="col">Status</th></tr>
+                </thead>
+                <tbody id="mppt-detail-body"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="instrument-panel resilience-card" id="grid-response-panel" aria-labelledby="grid-response-panel-title">
+            <h3 class="resilience-card-title" id="grid-response-panel-title">DQ current and PLL tracking</h3>
+            <p class="resilience-card-note">Direct-quadrature current ripple balance and Phase-Locked Loop synchronization errors.</p>
+            <div class="resilience-stat-row" id="dq-pll-stats-row"></div>
+            <h4 class="resilience-subhead">Per-section DQ and PLL detail</h4>
+            <div class="table-scroll" tabindex="0">
+              <table class="resilience-table" id="dq-pll-detail-table">
+                <thead>
+                  <tr><th scope="col">Section</th><th scope="col">D ripple</th><th scope="col">Q ripple</th><th scope="col">Total ripple</th><th scope="col">PLL error</th><th scope="col">PLL lock</th></tr>
+                </thead>
+                <tbody id="dq-pll-detail-body"></tbody>
+              </table>
+            </div>
+          </article>
         </div>
       </section>
 
