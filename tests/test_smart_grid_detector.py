@@ -958,5 +958,136 @@ class ResilienceAnalyzerTests(unittest.TestCase):
         self.assertIn("dq_pll_metrics", artifact)
 
 
+class EdgeQuantizerTests(unittest.TestCase):
+    """Edge hardware emulation: PTQ, MAC/FLOP profiling, FDI regression."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        detector.set_deterministic_seed(42)
+        cls.device = torch.device("cpu")
+        cls.bundle = detector._generate_waveform_bundle(2000, 512, seed=42)
+        cls.model = detector.GridWaveformAutoencoder(sequence_length=512)
+        cls.normal_train = cls.bundle.train_waveforms[
+            cls.bundle.train_labels == 0
+        ].contiguous()
+        cls.threshold = detector.train_autoencoder(
+            cls.model, cls.normal_train, cls.device,
+            epochs=1, calibration={},
+        )
+
+    def test_model_profile_calculates_macs_and_flops(self) -> None:
+        import edge_quantizer
+        profile = edge_quantizer.profile_model(
+            self.model, sequence_length=512, base_channels=16, latent_dim=64,
+        )
+        summary = profile.summary()
+        self.assertGreater(summary["total_macs"], 100_000)
+        self.assertGreater(summary["total_flops"], 200_000)
+        self.assertGreater(summary["total_params"], 500_000)
+        self.assertGreater(summary["flash_fp32_kb"], 100.0)
+        self.assertGreater(summary["flash_int8_kb"], 10.0)
+        self.assertGreater(summary["flash_reduction_ratio"], 2.0)
+        self.assertGreater(summary["peak_sram_fp32_kb"], 1.0)
+        self.assertGreater(summary["peak_sram_int8_kb"], 0.5)
+        self.assertEqual(summary["conv_layer_count"], 6)
+        self.assertEqual(summary["linear_layer_count"], 2)
+
+    def test_conv_layer_profile_is_correct(self) -> None:
+        import edge_quantizer
+        conv = torch.nn.Conv1d(3, 16, kernel_size=7, stride=2, padding=3, bias=False)
+        lp = edge_quantizer.profile_conv1d(conv, "test", 512, is_transpose=False)
+        self.assertEqual(lp.in_channels, 3)
+        self.assertEqual(lp.out_channels, 16)
+        self.assertEqual(lp.kernel_size, 7)
+        self.assertEqual(lp.stride, 2)
+        self.assertFalse(lp.bias)
+        self.assertEqual(lp.output_length, 256)
+        expected_macs = 256 * 7 * 3 * 16
+        self.assertEqual(lp.macs, expected_macs)
+        self.assertEqual(lp.flops, expected_macs * 2)
+
+    def test_linear_layer_profile_is_correct(self) -> None:
+        import edge_quantizer
+        lin = torch.nn.Linear(1024, 64)
+        lp = edge_quantizer.profile_linear(lin, "test")
+        self.assertEqual(lp.in_features, 1024)
+        self.assertEqual(lp.out_features, 64)
+        self.assertEqual(lp.macs, 1024 * 64)
+        self.assertEqual(lp.flops, 1024 * 64 * 2 + 64)
+        self.assertTrue(lp.bias)
+
+    def test_static_quantization_produces_valid_model(self) -> None:
+        import edge_quantizer
+        cal_data = self.normal_train[:100]
+        quantized, meta = edge_quantizer.apply_static_quantization(
+            self.model, cal_data, self.device,
+        )
+        self.assertTrue(meta["success"])
+        self.assertIn(meta["mode"], ("fx_graph", "eager", "dynamic"))
+
+    def test_quantized_model_produces_correct_output_shape(self) -> None:
+        import edge_quantizer
+        cal_data = self.normal_train[:50]
+        quantized, _ = edge_quantizer.apply_static_quantization(
+            self.model, cal_data, self.device,
+        )
+        sample = self.bundle.test_waveforms[:4].to(self.device)
+        with torch.inference_mode():
+            output = quantized(sample)
+        self.assertEqual(output.shape, sample.shape)
+
+    def test_dispatch_regression_compares_fp32_vs_int8(self) -> None:
+        import edge_quantizer
+        result = edge_quantizer.run_dispatch_regression(
+            self.model, self.bundle, self.normal_train,
+            threshold_sigma=3.5, device=self.device,
+            calibration_samples=50,
+        )
+        table = result["comparison_table"]
+        self.assertIn("fp32", table)
+        self.assertIn("int8", table)
+        self.assertIn("accuracy", table["fp32"])
+        self.assertIn("fdi_detection_rate", table["fp32"])
+        self.assertIn("latency_ms", table["fp32"])
+        self.assertIn("flash_kb", table["fp32"])
+        self.assertIn("deltas", result)
+        self.assertIn("assertions", result)
+        # INT8 accuracy should be within 5% of FP32
+        delta = abs(result["deltas"]["accuracy_delta"])
+        self.assertLess(delta, 0.05)
+
+    def test_dispatch_regression_fdi_above_95_percent(self) -> None:
+        import edge_quantizer
+        result = edge_quantizer.run_dispatch_regression(
+            self.model, self.bundle, self.normal_train,
+            threshold_sigma=3.5, device=self.device,
+            calibration_samples=50,
+        )
+        int8_fdi = result["comparison_table"]["int8"]["fdi_detection_rate"]
+        self.assertGreaterEqual(
+            int8_fdi, 0.95,
+            f"INT8 FDI detection rate {int8_fdi:.4f} is below 95%",
+        )
+
+    def test_flash_memory_is_reduced_by_quantization(self) -> None:
+        import edge_quantizer
+        result = edge_quantizer.run_dispatch_regression(
+            self.model, self.bundle, self.normal_train,
+            threshold_sigma=3.5, device=self.device,
+            calibration_samples=50,
+        )
+        fp32_kb = result["comparison_table"]["fp32"]["flash_kb"]
+        int8_kb = result["comparison_table"]["int8"]["flash_kb"]
+        self.assertLess(int8_kb, fp32_kb)
+
+    def test_latency_is_measured_and_positive(self) -> None:
+        import edge_quantizer
+        sample = self.bundle.test_waveforms[:1].to(self.device)
+        latency = edge_quantizer.measure_latency(self.model, sample, iterations=5)
+        self.assertGreater(latency["latency_ms_median"], 0.0)
+        self.assertGreater(latency["latency_ms_p95"], 0.0)
+        self.assertEqual(latency["iterations"], 5)
+
+
 if __name__ == "__main__":
     unittest.main()
