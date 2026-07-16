@@ -48,6 +48,9 @@ disables directory listing, and emits restrictive browser security headers.
 - drift monitoring and physics-consistency false-data-injection experiments;
 - FP32/dynamic-int8 autoencoder size and forward-latency comparison plus a
   batch latency/throughput profile;
+- Post-Training Static Quantization (PTQ) targeting ARM Cortex-M7 with MAC/FLOP
+  profiling, Flash/SRAM memory estimation, and FDI dispatch regression test
+  (`edge_quantizer.py`);
 - synthetic feeder isolation, rerouting, and run-bound dispatch work orders;
 - versioned JSON, a generated Markdown report, an H.264 explainer, and an
   accessible responsive dashboard with an optional Three.js topology view.
@@ -71,13 +74,17 @@ the source, report data, dispatch binding, or video become stale.
 ## Verification
 
 ```powershell
-python -m py_compile smart_grid_detector.py tests\test_smart_grid_detector.py
+python -m py_compile smart_grid_detector.py edge_quantizer.py tests\test_smart_grid_detector.py
 python -m unittest discover -s tests -p "test_*.py" -v
 node --check simulation_site\app.js
 node --check simulation_site\logic.mjs
 node --check simulation_site\topology-loader.js
 node --check simulation_site\topology3d.js
+node --check simulation_site\dsp-engine.js
+node --check simulation_site\autoencoder-sim.js
+node --check simulation_site\hardware-export.js
 node --test tests\test_frontend_logic.mjs
+npx playwright test tests\e2e\dashboard_audit.spec.js --reporter=list
 ```
 
 `scipy.signal` is used when installed; the detector retains a deterministic

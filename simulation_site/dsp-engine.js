@@ -2,27 +2,20 @@
  * dsp-engine.js — Real-time DSP layer for Grid Sentinel.
  *
  * Provides:
- *   - Clarke Transform (abc → αβ0)
- *   - Three-phase signal generator with configurable amplitude, frequency, phase
- *   - Real-time FFT-based THD computation (harmonics 2–50)
- *   - Phase portrait renderer (α vs β)
+ *   - Clarke Transform batch (abc to alpha-beta-zero)
+ *   - Real-time FFT-based THD computation (harmonics 2-50)
+ *   - Phase portrait renderer (alpha vs beta)
  *   - PLL-normalized frequency tracking
+ *   - Dominant harmonic detection
  */
 
 const TWO_PI = 2 * Math.PI;
 
 // ── Clarke Transform ──────────────────────────────────────────────
 // Power-invariant form: same magnitude for balanced and unbalanced systems.
-//   V_α = (2/3)(V_a - 0.5·V_b - 0.5·V_c)
-//   V_β = (2/3)(√3/2·V_b - √3/2·V_c)
+//   V_alpha = (2/3)(V_a - 0.5*V_b - 0.5*V_c)
+//   V_beta = (2/3)(sqrt(3)/2*V_b - sqrt(3)/2*V_c)
 //   V_0 = (1/3)(V_a + V_b + V_c)
-export function clarkeTransform(va, vb, vc) {
-  const SQRT3_OVER_2 = 0.8660254037844387;
-  const alpha = (2 / 3) * (va - 0.5 * vb - 0.5 * vc);
-  const beta = (2 / 3) * (SQRT3_OVER_2 * vb - SQRT3_OVER_2 * vc);
-  const zero = (1 / 3) * (va + vb + vc);
-  return [alpha, beta, zero];
-}
 
 // Batch Clarke Transform over N samples. Returns { alpha: Float64Array, beta: Float64Array, zero: Float64Array }.
 export function clarkeTransformBatch(va, vb, vc) {
@@ -39,81 +32,6 @@ export function clarkeTransformBatch(va, vb, vc) {
   return { alpha, beta, zero };
 }
 
-// Inverse Clarke Transform (αβ0 → abc).
-export function inverseClarke(alpha, beta, zero) {
-  const SQRT3_OVER_2 = 0.8660254037844387;
-  const va = alpha + zero;
-  const vb = -0.5 * alpha + SQRT3_OVER_2 * beta + zero;
-  const vc = -0.5 * alpha - SQRT3_OVER_2 * beta + zero;
-  return [va, vb, vc];
-}
-
-// ── Three-Phase Signal Generator ──────────────────────────────────
-// Generates a deterministic three-phase sinusoidal signal with:
-//   - Configurable amplitude (per-phase or uniform)
-//   - Configurable frequency (default 60 Hz)
-//   - Configurable phase offsets (default 0°, -120°, +120°)
-//   - Configurable drift (frequency deviation over time)
-//   - Optional DC offset per phase
-//   - Optional harmonic injection per phase
-export function generateThreePhaseSignal(config = {}) {
-  const {
-    sampleRate = 10000,      // Hz
-    duration = 0.1,           // seconds (10 ms window = 100 samples at 10 kHz)
-    amplitude = 1.0,          // p.u. amplitude
-    frequency = 60,           // Hz
-    phaseOffsets = [0, -120, 120],  // degrees
-    drift = 0,                // Hz/s drift rate
-    dcOffset = [0, 0, 0],    // per-phase DC offset
-    harmonics = [],           // [{ harmonic: number, amplitude: number, phase: number }]
-    noiseStd = 0,             // Gaussian noise standard deviation
-  } = config;
-
-  const n = Math.max(2, Math.round(sampleRate * duration));
-  const dt = 1 / sampleRate;
-  const phase = new Float64Array(3);
-  const va = new Float64Array(n);
-  const vb = new Float64Array(n);
-  const vc = new Float64Array(n);
-
-  for (let i = 0; i < n; i++) {
-    const t = i * dt;
-    const freq = frequency + drift * t;
-    for (let p = 0; p < 3; p++) {
-      const phaseRad = (phaseOffsets[p] * Math.PI) / 180;
-      let sample = amplitude * Math.sin(TWO_PI * freq * t + phaseRad);
-      // Add harmonics
-      for (const h of harmonics) {
-        const hPhase = (h.phase || 0) * Math.PI / 180;
-        sample += h.amplitude * Math.sin(TWO_PI * h.harmonic * freq * t + hPhase);
-      }
-      // Add DC offset
-      sample += dcOffset[p];
-      // Add noise
-      if (noiseStd > 0) {
-        sample += noiseStd * gaussianRandom();
-      }
-      if (p === 0) va[i] = sample;
-      else if (p === 1) vb[i] = sample;
-      else vc[i] = sample;
-    }
-  }
-
-  return { va, vb, vc, sampleRate, duration: n * dt, samples: n };
-}
-
-// Box-Muller transform for Gaussian noise
-function gaussianRandom() {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(TWO_PI * v);
-}
-
-// ── FFT (radix-2, in-place) ──────────────────────────────────────
-// Minimal real-valued FFT for THD computation. Not a general-purpose FFT;
-// this is tuned for power-signal analysis where the input is real and the
-// output magnitude spectrum is all we need.
 export function fftReal(input) {
   const n = input.length;
   if (n < 2) return { re: Float64Array.from(input), im: new Float64Array(n) };
@@ -286,78 +204,7 @@ export function renderPhasePortrait(canvas, clarkeData, options = {}) {
 }
 
 // ── Reconstruction Error ──────────────────────────────────────────
-// Computes the MSE between original and reconstructed three-phase signals.
-export function computeMse(original, reconstructed) {
-  let totalError = 0;
-  let totalSamples = 0;
-  for (let p = 0; p < 3; p++) {
-    const orig = original[p];
-    const recon = reconstructed[p];
-    const n = orig.length;
-    for (let i = 0; i < n; i++) {
-      const diff = orig[i] - recon[i];
-      totalError += diff * diff;
-    }
-    totalSamples += n;
-  }
-  return totalSamples > 0 ? totalError / totalSamples : 0;
-}
-
 // ── Simulated Autoencoder Reconstruction ──────────────────────────
-// Simulates what the Conv1D autoencoder would produce for a given signal.
-// For clean signals, reconstruction closely tracks the input.
-// For faulted signals, reconstruction deviates in proportion to the fault
-// severity, mimicking the behavior of the trained model.
-export function simulateAutoencoderReconstruction(va, vb, vc, config = {}) {
-  const {
-    reconstructionNoiseStd = 0.0001,  // Tiny reconstruction noise for clean signals
-    faultDeviationScale = 0.3,         // How much fault signals deviate in reconstruction
-  } = config;
-
-  const n = va.length;
-  const reconA = new Float64Array(n);
-  const reconB = new Float64Array(n);
-  const reconC = new Float64Array(n);
-
-  // The autoencoder learns to reconstruct clean three-phase signals.
-  // When the input deviates from a clean sinusoid, the reconstruction
-  // "tries to pull it back" but cannot perfectly track the fault.
-  // This creates a measurable reconstruction error.
-
-  for (let i = 0; i < n; i++) {
-    // Add tiny reconstruction noise (model imperfection)
-    const noiseA = reconstructionNoiseStd * (Math.random() * 2 - 1);
-    const noiseB = reconstructionNoiseStd * (Math.random() * 2 - 1);
-    const noiseC = reconstructionNoiseStd * (Math.random() * 2 - 1);
-
-    // For clean signals, reconstruction ≈ input + noise
-    // For faulted signals, reconstruction pulls toward clean reference
-    // The deviation is proportional to the difference from a clean sinusoid
-    reconA[i] = va[i] * (1 - faultDeviationScale * 0.1) + noiseA;
-    reconB[i] = vb[i] * (1 - faultDeviationScale * 0.1) + noiseB;
-    reconC[i] = vc[i] * (1 - faultDeviationScale * 0.1) + noiseC;
-  }
-
-  return { va: reconA, vb: reconB, vc: reconC };
-}
-
-// ── Decision Gate ─────────────────────────────────────────────────
-// Evaluates the OR-decision gate: reconstruction error OR THD triggers alert.
-export function evaluateDecisionGate(mse, thd, thresholds) {
-  const { reconstructionThreshold, thdLimit } = thresholds;
-  const triggers = [];
-  if (mse > reconstructionThreshold) triggers.push("reconstruction_error");
-  if (thd > thdLimit) triggers.push("thd");
-  return {
-    prediction: triggers.length > 0 ? "anomaly" : "normal",
-    mse,
-    thd,
-    triggers,
-    reconstructionRatio: mse / Math.max(reconstructionThreshold, 1e-12),
-    thdRatio: thd / Math.max(thdLimit, 1e-12),
-  };
-}
-
 // ── Utility: Compute dominant harmonic ────────────────────────────
 export function dominantHarmonic(signal, maxHarmonic = 50) {
   const n = signal.length;

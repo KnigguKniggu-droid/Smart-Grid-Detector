@@ -23,4 +23,4 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["smart_grid_detector"]
+known-first-party = ["smart_grid_detector", "edge_quantizer"]

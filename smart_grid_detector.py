@@ -48,6 +48,11 @@ try:
 except ImportError:  # The detector retains a dependency-free Tukey fallback.
     scipy_signal = None
 
+try:
+    import edge_quantizer
+except ImportError:
+    edge_quantizer = None
+
 
 RANDOM_SEED: Final[int] = 42
 SAMPLE_RATE_HZ: Final[float] = 10_000.0
@@ -3714,6 +3719,7 @@ def build_results_payload(
     drift_monitor: dict[str, Any] | None = None,
     fdi_resilience: dict[str, Any] | None = None,
     grid_response: dict[str, Any] | None = None,
+    edge_quantization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create the canonical run artifact used by report, site, and video."""
 
@@ -3922,6 +3928,8 @@ def build_results_payload(
         payload["fdi_resilience"] = fdi_resilience
     if grid_response is not None:
         payload["grid_response"] = grid_response
+    if edge_quantization is not None:
+        payload["edge_quantization"] = edge_quantization
     return payload
 
 
@@ -4904,6 +4912,20 @@ def main() -> EvaluationSummary | None:
             bundle.test_labels,
             config.threshold_sigma,
         )
+        edge_quantization: dict[str, Any] | None = None
+        if edge_quantizer is not None:
+            try:
+                edge_quantization = edge_quantizer.run_dispatch_regression(
+                    model,
+                    bundle,
+                    normal_train_waveforms,
+                    threshold_sigma=config.threshold_sigma,
+                    device=device,
+                    calibration_samples=200,
+                )
+            except (RuntimeError, ValueError, TypeError) as eq_error:
+                print(f"[EDGE-QUANT] skipped: {type(eq_error).__name__}: {eq_error}")
+                edge_quantization = None
         latency_profile = run_latency_profile(
             model,
             bundle.test_waveforms,
@@ -4949,6 +4971,7 @@ def main() -> EvaluationSummary | None:
             drift_monitor=drift_monitor,
             fdi_resilience=fdi_resilience,
             grid_response=grid_response,
+            edge_quantization=edge_quantization,
         )
         results_path = write_results_json(payload, Path(args.results_path))
         print(f"[RESULTS] json={results_path}")

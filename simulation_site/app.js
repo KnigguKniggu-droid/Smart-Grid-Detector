@@ -585,7 +585,8 @@ function renderResiliencePanel(data) {
   const fdi = data.fdi_resilience;
   const gr = data.grid_response;
   const ri = gr && gr.reliability_indices;
-  if (!probes && !edge && !drift && !fdi && !ri) {
+  const eq = data.edge_quantization;
+  if (!probes && !edge && !drift && !fdi && !ri && !eq) {
     panel.hidden = true;
     return;
   }
@@ -725,6 +726,56 @@ function renderResiliencePanel(data) {
     } else {
       panel.appendChild(
         el("p", `int8 unavailable: ${edge.int8_unavailable_reason}`, "resilience-card-note"),
+      );
+    }
+  }
+
+  if (eq && eq.model_profile) {
+    panel.appendChild(el("h4", "Edge hardware profiling (ARM Cortex-M7)", "resilience-subhead"));
+    const mp = eq.model_profile;
+    const eqRow = el("div", null, "resilience-stat-row");
+    const macCard = el("div", null, "resilience-stat");
+    macCard.appendChild(el("span", "Total MACs"));
+    macCard.appendChild(el("strong", mp.total_macs.toLocaleString(), "is-cyan"));
+    eqRow.appendChild(macCard);
+    const flopCard = el("div", null, "resilience-stat");
+    flopCard.appendChild(el("span", "Total FLOPs"));
+    flopCard.appendChild(el("strong", mp.total_flops.toLocaleString(), "is-cyan"));
+    eqRow.appendChild(flopCard);
+    const flashCard = el("div", null, "resilience-stat");
+    flashCard.appendChild(el("span", "Flash FP32"));
+    flashCard.appendChild(el("strong", `${mp.flash_fp32_kb} KB`, ""));
+    eqRow.appendChild(flashCard);
+    const sramCard = el("div", null, "resilience-stat");
+    sramCard.appendChild(el("span", "Peak SRAM"));
+    sramCard.appendChild(el("strong", `${mp.peak_sram_fp32_kb} KB`, ""));
+    eqRow.appendChild(sramCard);
+    panel.appendChild(eqRow);
+
+    if (eq.comparison_table && eq.comparison_table.fp32 && eq.comparison_table.int8) {
+      const ct = eq.comparison_table;
+      panel.appendChild(
+        buildTable(
+          ["Metric", "FP32", "INT8", "Delta"],
+          [
+            ["Accuracy", ct.fp32.accuracy.toFixed(4), ct.int8.accuracy.toFixed(4), `${eq.deltas.accuracy_delta >= 0 ? "+" : ""}${eq.deltas.accuracy_delta.toFixed(4)}`],
+            ["FDI detection", ct.fp32.fdi_detection_rate.toFixed(4), ct.int8.fdi_detection_rate.toFixed(4), `${eq.deltas.fdi_detection_delta >= 0 ? "+" : ""}${eq.deltas.fdi_detection_delta.toFixed(4)}`],
+            ["Latency (ms)", ct.fp32.latency_ms.toFixed(4), ct.int8.latency_ms.toFixed(4), `${eq.deltas.latency_speedup.toFixed(2)}x`],
+            ["Flash (KB)", ct.fp32.flash_kb.toFixed(2), ct.int8.flash_kb.toFixed(2), `${eq.deltas.flash_reduction_ratio.toFixed(2)}x`],
+            ["SRAM (KB)", ct.fp32.sram_peak_kb.toFixed(2), ct.int8.sram_peak_kb.toFixed(2), `${eq.deltas.sram_reduction_ratio.toFixed(2)}x`],
+            ["Params", ct.fp32.params.toLocaleString(), ct.int8.params.toLocaleString(), "same"],
+          ],
+        ),
+      );
+      const qm = eq.quantization_metadata || {};
+      panel.appendChild(
+        el(
+          "p",
+          `Quantization: ${qm.mode || "unknown"} mode on ${qm.calibration_samples || 0} calibration samples. ` +
+            `Target: ${eq.target_hardware || "ARM Cortex-M7"}. ` +
+            `FDI >= 95%: ${eq.assertions && eq.assertions.fdi_above_95 ? "PASS" : "FAIL"}.`,
+          "resilience-card-note",
+        ),
       );
     }
   }

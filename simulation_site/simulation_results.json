@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "run": {
-    "id": "20260716T005049Z-seed42",
+    "id": "20260716T162211Z-seed42",
     "status": "complete",
-    "started_at_utc": "2026-07-16T00:49:50.070742+00:00",
-    "completed_at_utc": "2026-07-16T00:50:49.201734+00:00",
+    "started_at_utc": "2026-07-16T16:21:09.891390+00:00",
+    "completed_at_utc": "2026-07-16T16:22:11.704120+00:00",
     "command": [
       "python.exe",
       "smart_grid_detector.py",
@@ -68,7 +68,7 @@
         "physics_penalty": 0.07236870731178083,
         "total_loss": 2.1097373949854,
         "physics_alpha": 0.01,
-        "latency_ms": 511.5674999979092
+        "latency_ms": 654.5189999887953
       },
       {
         "epoch": 2,
@@ -76,7 +76,7 @@
         "physics_penalty": 0.09172265082597733,
         "total_loss": 0.8673279109754061,
         "physics_alpha": 0.01,
-        "latency_ms": 525.8068999974057
+        "latency_ms": 582.7225999964867
       },
       {
         "epoch": 3,
@@ -84,7 +84,7 @@
         "physics_penalty": 0.09836903010544024,
         "total_loss": 0.45909243759356044,
         "physics_alpha": 0.01,
-        "latency_ms": 547.7621000027284
+        "latency_ms": 598.6814999923809
       },
       {
         "epoch": 4,
@@ -92,7 +92,7 @@
         "physics_penalty": 0.0870585109842451,
         "total_loss": 0.2781782603577564,
         "physics_alpha": 0.01,
-        "latency_ms": 537.20319999411
+        "latency_ms": 560.6686999963131
       },
       {
         "epoch": 5,
@@ -100,7 +100,7 @@
         "physics_penalty": 0.08166508627565283,
         "total_loss": 0.18845587733544802,
         "physics_alpha": 0.01,
-        "latency_ms": 485.7080000001588
+        "latency_ms": 503.30850000318605
       },
       {
         "epoch": 6,
@@ -108,7 +108,7 @@
         "physics_penalty": 0.06878238288979781,
         "total_loss": 0.136920218091262,
         "physics_alpha": 0.01,
-        "latency_ms": 499.75719999929424
+        "latency_ms": 594.3358000076842
       },
       {
         "epoch": 7,
@@ -116,7 +116,7 @@
         "physics_penalty": 0.05400417529438671,
         "total_loss": 0.10207363398451554,
         "physics_alpha": 0.01,
-        "latency_ms": 466.15729999757605
+        "latency_ms": 547.2274999920046
       },
       {
         "epoch": 8,
@@ -124,7 +124,7 @@
         "physics_penalty": 0.039478719273680137,
         "total_loss": 0.07799727085389589,
         "physics_alpha": 0.01,
-        "latency_ms": 531.5954999969108
+        "latency_ms": 504.96750000456814
       },
       {
         "epoch": 9,
@@ -132,7 +132,7 @@
         "physics_penalty": 0.027208705364089262,
         "total_loss": 0.060838078589815846,
         "physics_alpha": 0.01,
-        "latency_ms": 492.4542000007932
+        "latency_ms": 538.9327999873785
       },
       {
         "epoch": 10,
@@ -140,7 +140,7 @@
         "physics_penalty": 0.019071425928881294,
         "total_loss": 0.04817015391431357,
         "physics_alpha": 0.01,
-        "latency_ms": 499.3259999973816
+        "latency_ms": 594.8838000040269
       },
       {
         "epoch": 11,
@@ -148,7 +148,7 @@
         "physics_penalty": 0.012067267759458015,
         "total_loss": 0.03921736698401602,
         "physics_alpha": 0.01,
-        "latency_ms": 526.32860000449
+        "latency_ms": 664.9801000021398
       },
       {
         "epoch": 12,
@@ -156,7 +156,7 @@
         "physics_penalty": 0.007670477464010841,
         "total_loss": 0.03263704735589655,
         "physics_alpha": 0.01,
-        "latency_ms": 513.5353000005125
+        "latency_ms": 584.4342000054894
       },
       {
         "epoch": 13,
@@ -164,7 +164,7 @@
         "physics_penalty": 0.004205739302070517,
         "total_loss": 0.02775008331396078,
         "physics_alpha": 0.01,
-        "latency_ms": 535.3836999929626
+        "latency_ms": 597.925000009127
       },
       {
         "epoch": 14,
@@ -172,7 +172,7 @@
         "physics_penalty": 0.002165617560967803,
         "total_loss": 0.023881328498062335,
         "physics_alpha": 0.01,
-        "latency_ms": 569.6371999947587
+        "latency_ms": 581.0783000051742
       },
       {
         "epoch": 15,
@@ -180,7 +180,7 @@
         "physics_penalty": 0.0013284328209824468,
         "total_loss": 0.020704509455122446,
         "physics_alpha": 0.01,
-        "latency_ms": 533.049800003937
+        "latency_ms": 617.6056999975117
       }
     ],
     "calibration": {
@@ -208,8 +208,8 @@
       "false_positives": 0,
       "false_negatives": 0,
       "alerts": 20,
-      "inference_latency_ms": 77.29630000540055,
-      "throughput_waveforms_per_second": 5174.89194142608
+      "inference_latency_ms": 74.59009999001864,
+      "throughput_waveforms_per_second": 5362.6419599052215
     },
     "observations": [
       {
@@ -14466,7 +14466,7 @@
     ]
   },
   "provenance": {
-    "source_sha256": "4e8df67b6546bc47de276f11cb9ce7b5e09b57207e9d173fae241018c39b6d28",
+    "source_sha256": "d787bf97f523367a4381ae845282ee6f6cc20e2b6735727c8489a8071a95d839",
     "python_version": "3.12.10",
     "torch_version": "2.12.1+cpu",
     "numpy_version": "2.5.0",
@@ -14474,7 +14474,7 @@
     "window_backend": "Tukey fallback",
     "deterministic_algorithms": true
   },
-  "timestamp_unix": 1784163049,
+  "timestamp_unix": 1784218931,
   "test_total": 400,
   "metrics": {
     "accuracy": 1.0,
@@ -14488,8 +14488,8 @@
     "false_positives": 0,
     "false_negatives": 0,
     "alerts": 20,
-    "inference_latency_ms": 77.29630000540055,
-    "throughput_waveforms_per_second": 5174.89194142608
+    "inference_latency_ms": 74.59009999001864,
+    "throughput_waveforms_per_second": 5362.6419599052215
   },
   "calibration": {
     "threshold_reconstruction_error": 0.021058209240436554
@@ -14514,7 +14514,7 @@
         "false_positives": 0,
         "false_negatives": 0,
         "threshold": 0.021058209240436554,
-        "inference_latency_ms": 95.51469999860274
+        "inference_latency_ms": 128.99189999734517
       },
       {
         "seed": 43,
@@ -14525,7 +14525,7 @@
         "false_positives": 0,
         "false_negatives": 0,
         "threshold": 0.01920774020254612,
-        "inference_latency_ms": 74.41749999998137
+        "inference_latency_ms": 79.1326000035042
       },
       {
         "seed": 44,
@@ -14536,7 +14536,7 @@
         "false_positives": 0,
         "false_negatives": 0,
         "threshold": 0.018875211477279663,
-        "inference_latency_ms": 78.92419999552658
+        "inference_latency_ms": 75.276000003214
       },
       {
         "seed": 45,
@@ -14547,7 +14547,7 @@
         "false_positives": 0,
         "false_negatives": 0,
         "threshold": 0.00941470917314291,
-        "inference_latency_ms": 72.67520000459626
+        "inference_latency_ms": 74.3159999983618
       },
       {
         "seed": 46,
@@ -14558,7 +14558,7 @@
         "false_positives": 0,
         "false_negatives": 0,
         "threshold": 0.011301746591925621,
-        "inference_latency_ms": 69.14929999766173
+        "inference_latency_ms": 105.36300000967458
       }
     ],
     "aggregate": {
@@ -14608,13 +14608,13 @@
         "max": 0.021058209240436554
       },
       "inference_latency_ms": {
-        "mean": 78.13617999927374,
-        "std": 10.332579886992779,
-        "ci95_half_width": 12.827535680897988,
-        "ci95_low": 65.30864431837574,
-        "ci95_high": 90.96371568017173,
-        "min": 69.14929999766173,
-        "max": 95.51469999860274
+        "mean": 92.61590000241995,
+        "std": 23.995102548371733,
+        "ci95_half_width": 29.789078572091928,
+        "ci95_low": 62.826821430328025,
+        "ci95_high": 122.40497857451187,
+        "min": 74.3159999983618,
+        "max": 128.99189999734517
       }
     }
   },
@@ -15616,33 +15616,33 @@
     "points": [
       {
         "batch_size": 1,
-        "latency_ms_median": 1.2637999971047975,
-        "per_record_ms": 1.2637999971047975,
-        "throughput_per_s": 791.2644423887251
+        "latency_ms_median": 1.9950999994762242,
+        "per_record_ms": 1.9950999994762242,
+        "throughput_per_s": 501.2280087527097
       },
       {
         "batch_size": 8,
-        "latency_ms_median": 2.906149999034824,
-        "per_record_ms": 0.363268749879353,
-        "throughput_per_s": 2752.78289236857
+        "latency_ms_median": 3.4016999998129904,
+        "per_record_ms": 0.4252124999766238,
+        "throughput_per_s": 2351.7652939529653
       },
       {
         "batch_size": 32,
-        "latency_ms_median": 4.125100003875559,
-        "per_record_ms": 0.12890937512111122,
-        "throughput_per_s": 7757.3876924040105
+        "latency_ms_median": 5.5537500011269,
+        "per_record_ms": 0.17355468753521563,
+        "throughput_per_s": 5761.872607428664
       },
       {
         "batch_size": 128,
-        "latency_ms_median": 9.484549995249836,
-        "per_record_ms": 0.07409804683788934,
-        "throughput_per_s": 13495.632377298498
+        "latency_ms_median": 12.95994999964023,
+        "per_record_ms": 0.1012496093721893,
+        "throughput_per_s": 9876.581314245293
       },
       {
         "batch_size": 400,
-        "latency_ms_median": 34.28220000205329,
-        "per_record_ms": 0.08570550000513322,
-        "throughput_per_s": 11667.86262188665
+        "latency_ms_median": 43.586199994024355,
+        "per_record_ms": 0.10896549998506089,
+        "throughput_per_s": 9177.21664322285
       }
     ],
     "peak_throughput_batch_size": 128
@@ -15790,7 +15790,7 @@
     "timed_iterations": 100,
     "fp32": {
       "state_dict_bytes": 2274359,
-      "single_record_latency_ms_median": 1.4221499986888375,
+      "single_record_latency_ms_median": 2.0687500000349246,
       "recalibrated_threshold": 0.021058209240436554,
       "accuracy": 1.0,
       "precision": 1.0,
@@ -15803,7 +15803,7 @@
     },
     "int8": {
       "state_dict_bytes": 703019,
-      "single_record_latency_ms_median": 1.8345500029681716,
+      "single_record_latency_ms_median": 1.9133000023430213,
       "recalibrated_threshold": 0.021305471658706665,
       "accuracy": 1.0,
       "precision": 1.0,
@@ -15816,7 +15816,7 @@
     },
     "int8_unavailable_reason": null,
     "size_reduction_ratio": 3.23513162517656,
-    "latency_speedup": 0.7752037264658362
+    "latency_speedup": 1.0812470587474727
   },
   "drift_monitor": {
     "window": 64,
@@ -16119,6 +16119,92 @@
       "score": 0.2947,
       "strategy": "cascade_protection",
       "coordination_sections": 8
+    }
+  },
+  "edge_quantization": {
+    "target_hardware": "ARM Cortex-M7 / Edge Micro-AI",
+    "model_profile": {
+      "total_macs": 3448832,
+      "total_flops": 6903360,
+      "total_params": 565283,
+      "flash_fp32_kb": 2208.14,
+      "flash_int8_kb": 565.17,
+      "flash_reduction_ratio": 3.91,
+      "peak_sram_fp32_kb": 22.0,
+      "peak_sram_int8_kb": 5.5,
+      "sram_reduction_ratio": 4.0,
+      "conv_layer_count": 6,
+      "linear_layer_count": 2,
+      "batchnorm_param_count": 320
+    },
+    "quantization_metadata": {
+      "method": "post_training_static",
+      "fused_modules": 1,
+      "calibration_samples": 200,
+      "quantization_engine": "onednn",
+      "torch_version": "2.12.1+cpu",
+      "mode": "dynamic",
+      "fx_error": "ImportError: cannot import name 'prepare_fx' from 'torch.ao.quantization' (C:\\Users\\ganes\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\torch\\ao\\quantization\\__init__.py)",
+      "eager_error": "RuntimeError: quantized::conv_prepack: ONEDNN only supports zero output_padding.",
+      "success": true
+    },
+    "comparison_table": {
+      "fp32": {
+        "accuracy": 1.0,
+        "fdi_detection_rate": 0.9675,
+        "latency_ms": 1.6785,
+        "flash_kb": 2221.05,
+        "sram_peak_kb": 22.0,
+        "macs": 3448832,
+        "flops": 6903360,
+        "params": 565283
+      },
+      "int8": {
+        "accuracy": 1.0,
+        "fdi_detection_rate": 0.9675,
+        "latency_ms": 2.1105,
+        "flash_kb": 686.54,
+        "sram_peak_kb": 5.5,
+        "macs": 3448832,
+        "flops": 6903360,
+        "params": 565283
+      }
+    },
+    "deltas": {
+      "accuracy_delta": 0.0,
+      "fdi_detection_delta": 0.0,
+      "latency_speedup": 0.8,
+      "flash_reduction_ratio": 3.24,
+      "sram_reduction_ratio": 4.0
+    },
+    "assertions": {
+      "fdi_above_95": true,
+      "accuracy_above_99": true,
+      "flash_reduced": true
+    },
+    "detailed_metrics": {
+      "fp32": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "threshold": 0.021058209240436554,
+        "fdi_detection_rate": 0.9675,
+        "replay_masking_detection": 1.0,
+        "phase_bias_detection": 0.9658,
+        "baseline_false_positives": 0
+      },
+      "int8": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "threshold": 0.021305471658706665,
+        "fdi_detection_rate": 0.9675,
+        "replay_masking_detection": 1.0,
+        "phase_bias_detection": 0.9658,
+        "baseline_false_positives": 0
+      }
     }
   }
 }
