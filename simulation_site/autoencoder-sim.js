@@ -16,7 +16,6 @@
 import {
   clarkeTransformBatch,
   computeThd,
-  computeMse,
   dominantHarmonic,
   fftReal,
 } from "./dsp-engine.js";
@@ -87,7 +86,7 @@ export function forwardPass(va, vb, vc) {
 
   // Harmonics 2-50
   for (let h = 2; h <= Math.min(maxHarmonic, halfN - 1); h++) {
-    totalHarmonicPower += (re[h] ** 2 + im[1] ** 2) / (n * n);
+    totalHarmonicPower += (re[h] ** 2 + im[h] ** 2) / (n * n);
   }
 
   // Step 4: Estimate reconstruction error

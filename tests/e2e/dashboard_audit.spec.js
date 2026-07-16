@@ -4,12 +4,14 @@ import { test, expect } from "@playwright/test";
 const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://grid-sentinel-live.vercel.app/";
 
 test.describe("Smart Grid Dashboard E2E Audit", () => {
-  test("loads with zero console errors and renders all panels", async ({
+  test("loads with zero console errors and renders all panels with content", async ({
     page,
   }) => {
     const errors = [];
+    const warnings = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") errors.push(msg.text());
+      if (msg.type() === "warning") warnings.push(msg.text());
     });
     page.on("pageerror", (err) => errors.push(err.message));
 
@@ -26,6 +28,20 @@ test.describe("Smart Grid Dashboard E2E Audit", () => {
 
     const dispatch = page.locator("#dispatch-panel");
     await expect(dispatch).toBeVisible();
+
+    // Assert panels contain rendered content, not just empty shells
+    const resilienceStats = await page.locator("#resilience-panel .resilience-stat-row .resilience-stat").count();
+    expect(resilienceStats).toBeGreaterThan(0);
+
+    const dispatchStats = await page.locator("#dispatch-panel .resilience-stat-row .resilience-stat").count();
+    expect(dispatchStats).toBeGreaterThan(0);
+
+    const gridResponseStats = await page.locator("#grid-response-panel .resilience-stat-row .resilience-stat").count();
+    expect(gridResponseStats).toBeGreaterThan(0);
+
+    // Assert SAIFI value is present and numeric (not a placeholder dash)
+    const saifiText = await page.locator("#reliability-saifi-value").textContent();
+    expect(saifiText).not.toMatch(/^[\u2014\u2013-]+$/);
   });
 
   test("Three.js canvas is visible and actively painting", async ({

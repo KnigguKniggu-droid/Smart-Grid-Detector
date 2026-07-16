@@ -11,13 +11,11 @@ import {
   clarkeTransformBatch,
   renderPhasePortrait,
   computeThd,
-  generateThreePhaseSignal,
 } from "./dsp-engine.js";
 
 import {
   forwardPass,
   setThresholds,
-  analyzeWaveform,
 } from "./autoencoder-sim.js";
 
 import {
@@ -2167,11 +2165,11 @@ function renderHarmonicSpectrum(va, vb, vc, analysis) {
 
     // Color: fundamental (order 1) is accent, harmonics colored by severity
     if (order === 1) {
-      ctx.fillStyle = "var(--accent, #4fc3f7)";
+      ctx.fillStyle = "#4fc3f7";
     } else if (magnitudes[order] / maxMag > 0.1) {
-      ctx.fillStyle = "var(--alarm, #ef5350)";
+      ctx.fillStyle = "#ef5350";
     } else if (magnitudes[order] / maxMag > 0.03) {
-      ctx.fillStyle = "var(--warning, #ffa726)";
+      ctx.fillStyle = "#ffa726";
     } else {
       ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
     }
