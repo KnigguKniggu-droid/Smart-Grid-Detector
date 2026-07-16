@@ -89,6 +89,18 @@ smart-grid-detector/
 
 ## What was done in this session
 
+### 0. IEEE 1366 Reliability + Power Electronics Metrics + CI Hardening
+- Added `ResilienceAnalyzer` class: SAIFI, SAIDI, CAIDI, MPPT efficiency, DQ/PLL metrics
+- Total baseline customer pool of 1000 via `SECTION_CUSTOMERS` constant
+- Defensive event parsing skips malformed dicts without raising
+- Unhid and populated #resilience-panel (SAIFI/SAIDI/CAIDI), #dispatch-panel (MPPT), #grid-response-panel (DQ/PLL)
+- Extracted 12 pure functions into `logic.mjs` for testable panel logic
+- 87/87 tests passing (44 Python + 39 Node + 4 Playwright E2E)
+- Fixed 44 ruff lint errors, ruff now clean
+- CI: added dsp-engine.js, autoencoder-sim.js, hardware-export.js syntax checks
+- CI: added Playwright E2E job with local server support via DASHBOARD_URL env var
+- WCAG contrast audit: all 29 measured elements pass AA (lowest ratio 6.49:1, minimum 4.5:1)
+
 ### 1. UI Revamp (styles.css)
 - Glassmorphic dark theme with OKLCH color system
 - Custom CSS design tokens (--bg, --surface, --cyan, --ink, etc.)
